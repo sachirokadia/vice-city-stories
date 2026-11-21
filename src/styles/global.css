@@ -1,0 +1,1189 @@
+/* Vice City Stories — full-screen game shell. No page scroll, ever. */
+* { box-sizing: border-box; }
+
+:root {
+  --pink: #ff5e8a;
+  --pink-deep: #ff2e7a;
+  --amber: #ffd27a;
+  --violet: #2b1e5e;
+  --ink: #120a24;
+  --paper: #fff3e2;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+button { font-family: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+/* ---------- Loading ---------- */
+.loading-screen {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  background: linear-gradient(180deg, #1b1040 0%, #5b2166 48%, #ff7e5f 78%, #feb47b 100%);
+}
+.loading-sun {
+  width: 92px; height: 92px; border-radius: 50%;
+  background: radial-gradient(circle, #fff3c4 0%, #ffd27a 55%, #ff8a5c 100%);
+  box-shadow: 0 0 60px 18px rgba(255, 190, 110, 0.55);
+  animation: sun-pulse 2.2s ease-in-out infinite;
+}
+@keyframes sun-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.loading-kicker {
+  margin: 0; letter-spacing: 0.35em; text-transform: uppercase;
+  font-size: 12px; font-weight: 700; color: rgba(255,243,226,0.85);
+}
+.loading-title { margin: 0; font-size: clamp(28px, 5vw, 44px); line-height: 1.1; font-weight: 800; }
+.loading-bar {
+  width: min(420px, 82vw); height: 10px; border-radius: 999px;
+  background: rgba(18,10,36,0.45); overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+.loading-bar-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--amber), var(--pink));
+  transition: width 0.35s ease;
+}
+.loading-status { margin: 0; font-size: 14px; color: rgba(255,243,226,0.9); }
+.loading-note { margin: 0; font-size: 13px; color: rgba(255,243,226,0.65); }
+
+/* ---------- Main menu (cinematic) ---------- */
+.menu {
+  position: relative; width: 100%; height: 100dvh; overflow: hidden;
+  background: linear-gradient(180deg, #241145 0%, #5b2166 42%, #ff7e5f 68%, #feb47b 100%);
+}
+.menu-sky { position: absolute; inset: 0; }
+.menu-sun {
+  position: absolute; left: 50%; top: 16%; width: 190px; height: 190px;
+  transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(circle, #fff8d6 0%, #ffd27a 52%, #ff8a5c 100%);
+  box-shadow: 0 0 90px 30px rgba(255, 190, 110, 0.5);
+  animation: sun-drift 14s ease-in-out infinite alternate;
+}
+@keyframes sun-drift { from { transform: translateX(-52%) translateY(0); } to { transform: translateX(-48%) translateY(10px); } }
+.menu-cloud {
+  position: absolute; height: 26px; border-radius: 999px;
+  background: rgba(255, 220, 200, 0.35); filter: blur(2px);
+  animation: cloud-drift 26s linear infinite;
+}
+.menu-cloud.c1 { top: 12%; left: 8%; width: 190px; }
+.menu-cloud.c2 { top: 22%; left: 62%; width: 260px; animation-duration: 34s; }
+.menu-cloud.c3 { top: 7%; left: 38%; width: 140px; animation-duration: 21s; }
+@keyframes cloud-drift { from { transform: translateX(-30px); } to { transform: translateX(60px); } }
+.menu-skyline {
+  position: absolute; left: 0; right: 0; bottom: 18%; width: 100%; height: 34%;
+}
+.menu-sea {
+  position: absolute; left: 0; right: 0; bottom: 12%; height: 7%;
+  background: linear-gradient(180deg, #ff9d6b, #c65a86);
+  opacity: 0.9;
+}
+.menu-road {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 12%;
+  background: linear-gradient(180deg, #1a1033, #0d0718);
+}
+.menu-road::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 46%; height: 3px;
+  background: repeating-linear-gradient(90deg, var(--amber) 0 46px, transparent 46px 92px);
+  opacity: 0.8;
+}
+.menu-content {
+  position: relative; z-index: 2; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 24px; text-align: center;
+  text-shadow: 0 2px 18px rgba(18,10,36,0.6);
+}
+.menu-eyebrow {
+  margin: 0; letter-spacing: 0.32em; text-transform: uppercase;
+  font-size: 12px; font-weight: 700; color: var(--amber);
+}
+.menu-title { margin: 0; line-height: 0.95; }
+.menu-title-vice {
+  display: block; font-size: clamp(52px, 11vw, 118px); font-weight: 900;
+  letter-spacing: 0.04em; color: #fff;
+  text-shadow: 0 0 34px rgba(255, 94, 138, 0.75), 0 4px 0 rgba(18,10,36,0.55);
+}
+.menu-title-stories {
+  display: block; font-size: clamp(34px, 7vw, 72px); font-weight: 300; font-style: italic;
+  letter-spacing: 0.22em; color: var(--amber); margin-top: 6px;
+}
+.menu-tagline { margin: 4px 0 10px; font-size: clamp(15px, 2.4vw, 19px); line-height: 1.55; color: rgba(255,243,226,0.95); }
+.play-button {
+  border: none; border-radius: 999px; padding: 16px 54px;
+  font-size: 20px; font-weight: 800; letter-spacing: 0.06em; color: #fff;
+  background: linear-gradient(135deg, var(--pink), var(--pink-deep));
+  box-shadow: 0 10px 34px rgba(255, 46, 122, 0.55), inset 0 1px 0 rgba(255,255,255,0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.play-button:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 16px 42px rgba(255,46,122,0.65), inset 0 1px 0 rgba(255,255,255,0.35); }
+.play-button:active { transform: translateY(1px) scale(0.98); }
+.menu-hint { margin: 0; font-size: 13px; color: rgba(255,243,226,0.75); }
+.menu-meta {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  max-width: 640px; margin-top: 8px;
+}
+.menu-chip {
+  padding: 7px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+  background: rgba(18,10,36,0.55); border: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(4px); text-shadow: none;
+}
+.menu-chip-quality { border-color: var(--amber); color: var(--amber); }
+.menu-footer {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 10px;
+  margin: 0; text-align: center; font-size: 11.5px; color: rgba(255,243,226,0.6);
+}
+
+/* ---------- Game screen + HUD ---------- */
+.game-screen { position: relative; width: 100%; height: 100dvh; overflow: hidden; background: #120a24; }
+.game-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.game-starting {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  background: rgba(18,10,36,0.72); color: var(--paper); z-index: 5;
+}
+.game-starting-spinner {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 4px solid rgba(255,255,255,0.25); border-top-color: var(--pink);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.game-error {
+  position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center;
+  background: rgba(18,10,36,0.9);
+}
+.game-error h2 { margin: 0; }
+.game-error p { margin: 0; max-width: 480px; color: rgba(255,243,226,0.8); }
+
+.hud {
+  position: absolute; left: 0; right: 0; top: 0; z-index: 4;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: max(12px, env(safe-area-inset-top)) 14px 0;
+  pointer-events: none;
+}
+.hud-bottom { top: auto; bottom: 0; align-items: flex-end; padding: 0 14px max(12px, env(safe-area-inset-bottom)); }
+.hud-title { display: flex; flex-direction: column; line-height: 1.2; text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
+.hud-title strong { font-size: 18px; letter-spacing: 0.14em; }
+.hud-title span { font-size: 12px; color: rgba(255,243,226,0.8); }
+.hud-stats { display: flex; gap: 8px; align-items: center; pointer-events: auto; }
+.hud-chip {
+  padding: 7px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+  background: rgba(18,10,36,0.6); border: 1px solid rgba(255,255,255,0.2);
+}
+.hud-button {
+  padding: 9px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff;
+  background: rgba(18,10,36,0.65); border: 1px solid rgba(255,255,255,0.3);
+}
+.hud-button:hover { background: rgba(255,94,138,0.75); }
+.hud-hint {
+  margin: 0; font-size: 12.5px; color: rgba(255,243,226,0.85);
+  text-shadow: 0 1px 8px rgba(0,0,0,0.7); max-width: 62vw;
+}
+.hud-quit { pointer-events: auto; }
+
+/* ---------- Wanted HUD ---------- */
+.wanted-hud {
+  position: absolute; top: max(56px, calc(env(safe-area-inset-top) + 56px)); left: 50%;
+  transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; pointer-events: none;
+  padding: 8px 14px 10px; border-radius: 14px;
+  background: rgba(18,10,36,0.6); border: 1px solid rgba(255,255,255,0.2);
+}
+.wanted-stars { display: flex; gap: 3px; font-size: 22px; line-height: 1; }
+.wanted-star { color: rgba(255,255,255,0.25); }
+.wanted-star.on { color: #ffb020; text-shadow: 0 0 10px rgba(255,176,32,0.7); }
+.wanted-status { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; color: #ffd9d9; }
+.wanted-escape {
+  width: 140px; height: 5px; border-radius: 999px; overflow: hidden;
+  background: rgba(255,255,255,0.18);
+}
+.wanted-escape-fill { height: 100%; background: #ffb020; border-radius: 999px; }
+
+/* ---------- Surrender prompt + BUSTED screen ---------- */
+.surrender-prompt {
+  position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%);
+  z-index: 6; pointer-events: none; text-align: center;
+}
+.surrender-prompt span {
+  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+  background: rgba(40,8,12,0.82); border: 1px solid #ff5a3c;
+  box-shadow: 0 0 24px rgba(255,90,60,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+.surrender-prompt kbd {
+  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: #ff5a3c; color: #fff; font-weight: 800;
+}
+.surrender-button {
+  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
+  font-weight: 800; color: #fff; background: #d92b1f;
+  border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 0 24px rgba(255,90,60,0.55);
+  animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+.busted-overlay {
+  position: absolute; inset: 0; z-index: 8; display: flex;
+  align-items: center; justify-content: center; text-align: center;
+  background: rgba(12,4,10,0.72); backdrop-filter: blur(2px);
+  animation: busted-in 0.6s ease-out both;
+}
+.busted-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(120,10,20,0.55) 100%);
+}
+.busted-content {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; gap: 12px; padding: 0 20px;
+}
+.busted-title {
+  margin: 0; font-size: 64px; font-weight: 900; letter-spacing: 0.22em;
+  color: #ff4d3d; text-shadow: 0 0 32px rgba(255,60,40,0.8), 0 4px 0 rgba(0,0,0,0.4);
+}
+.busted-message { margin: 0; font-size: 17px; font-weight: 700; color: #fff3e2; }
+.busted-sub { margin: 0; font-size: 14px; color: rgba(255,243,226,0.75); }
+.busted-respawn { margin-top: 10px; }
+@keyframes busted-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- Downed (combat defeat) screen ---------- */
+.downed-overlay {
+  position: absolute; inset: 0; z-index: 8; display: flex;
+  align-items: center; justify-content: center; text-align: center;
+  background: rgba(10,4,4,0.72); backdrop-filter: blur(2px);
+  animation: busted-in 0.6s ease-out both;
+}
+.downed-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(90,10,10,0.6) 100%);
+}
+.downed-content {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; gap: 12px; padding: 0 20px;
+}
+.downed-title {
+  margin: 0; font-size: 64px; font-weight: 900; letter-spacing: 0.18em;
+  color: #ff6a3d; text-shadow: 0 0 32px rgba(255,90,40,0.8), 0 4px 0 rgba(0,0,0,0.4);
+}
+.downed-message { margin: 0; font-size: 17px; font-weight: 700; color: #fff3e2; }
+.downed-sub { margin: 0; font-size: 14px; color: rgba(255,243,226,0.75); }
+.downed-respawn { margin-top: 10px; }
+
+/* ---------- Encounter HUD ---------- */
+.encounter-hud {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  pointer-events: none; width: max-content; max-width: 92vw;
+}
+.encounter-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; border-radius: 999px;
+  background: rgba(20,4,4,0.82); border: 1px solid rgba(255,77,61,0.7);
+  color: #ffe9e2; font-size: 14px; font-weight: 800; letter-spacing: 0.04em;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+}
+.encounter-warning { color: #ff4d3d; font-size: 16px; }
+.encounter-count { color: #ffd166; }
+.encounter-toast {
+  padding: 8px 16px; border-radius: 999px;
+  background: rgba(8,30,12,0.85); border: 1px solid rgba(80,220,120,0.7);
+  color: #d8ffe2; font-size: 14px; font-weight: 800; letter-spacing: 0.04em;
+}
+.encounter-cooling {
+  padding: 6px 14px; border-radius: 999px;
+  background: rgba(12,12,16,0.7); border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700;
+}
+
+/* ---------- Combat contract HUD ---------- */
+/* Left, under the mission card on desktop; above the health bar on
+   small screens (the top centre is already the encounter banner
+   and the wanted pill). Only the Abandon button takes pointer
+   events, so the panel never blocks a tap. */
+.contract-hud {
+  position: absolute; top: 240px; left: 14px; z-index: 4; width: 288px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  pointer-events: none;
+}
+.contract-panel {
+  padding: 10px 12px; border-radius: 14px; pointer-events: auto;
+  background: rgba(18,10,36,0.78); border: 1px solid rgba(255,210,62,0.55);
+  box-shadow: 0 0 22px rgba(255,210,62,0.18);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.contract-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.contract-name { font-size: 14px; font-weight: 900; letter-spacing: 0.1em; color: #ffd23e; }
+.contract-reward { font-size: 13px; font-weight: 900; color: #9be15d; }
+.contract-objective { font-size: 12.5px; font-weight: 700; color: #fff3e2; }
+.contract-count { font-size: 12.5px; font-weight: 800; color: #ffd166; }
+.contract-wave { font-size: 12.5px; font-weight: 800; color: #fff3e2; }
+.contract-objective-bar {
+  position: relative; height: 18px; border-radius: 999px; overflow: hidden;
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25);
+}
+.contract-objective-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #ff8c2e, #ffd166);
+  transition: width 0.2s ease-out;
+}
+.contract-objective-text {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #1a0e02;
+}
+.contract-abandon {
+  align-self: flex-start; margin-top: 2px; padding: 5px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: rgba(255,243,226,0.85);
+  background: transparent; border: 1px solid rgba(255,255,255,0.3);
+}
+.contract-abandon:hover { background: rgba(255,90,60,0.25); border-color: #ff5a3c; }
+.contract-toast {
+  padding: 8px 16px; border-radius: 999px; text-align: center;
+  background: rgba(8,30,12,0.85); border: 1px solid rgba(80,220,120,0.7);
+  color: #d8ffe2; font-size: 13px; font-weight: 800; letter-spacing: 0.04em;
+}
+.contract-cooling {
+  padding: 6px 14px; border-radius: 999px; text-align: center;
+  background: rgba(12,12,16,0.7); border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700;
+}
+
+/* ---------- Mission HUD card ---------- */
+.mission-hud {
+  position: absolute; top: 64px; left: 14px; z-index: 4; width: 288px;
+  padding: 10px 12px 12px; border-radius: 14px; pointer-events: auto;
+  background: rgba(18,10,36,0.72); border: 1px solid rgba(255,210,62,0.55);
+  box-shadow: 0 0 22px rgba(255,210,62,0.18);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.mission-header { display: flex; justify-content: space-between; align-items: baseline; }
+.mission-title { font-size: 15px; font-weight: 900; letter-spacing: 0.12em; color: #ffd23e; }
+.mission-cash {
+  font-size: 13px; font-weight: 800; color: #9be15d;
+  padding: 3px 9px; border-radius: 999px; background: rgba(155,225,93,0.14);
+  border: 1px solid rgba(155,225,93,0.4);
+}
+.mission-giver { font-size: 11.5px; color: rgba(255,243,226,0.75); }
+.mission-objective { display: flex; align-items: center; gap: 8px; }
+.mission-arrow {
+  flex: 0 0 auto; font-size: 15px; line-height: 1; color: #ffd23e;
+  text-shadow: 0 0 8px rgba(255,210,62,0.8);
+}
+.mission-objective-text { flex: 1 1 auto; font-size: 13.5px; font-weight: 700; color: #fff3e2; }
+.mission-distance { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: #ffd23e; }
+.mission-progress { font-size: 11px; letter-spacing: 0.1em; color: rgba(255,243,226,0.65); }
+.mission-timer { font-size: 20px; font-weight: 900; letter-spacing: 0.06em; color: #fff3e2; }
+.mission-timer.urgent { color: #ff5a3c; animation: prompt-pulse 1s ease-in-out infinite; }
+.mission-flash {
+  font-size: 13px; font-weight: 900; letter-spacing: 0.1em; color: #ffd23e;
+  animation: mission-flash-in 2.4s ease-out both;
+}
+@keyframes mission-flash-in {
+  0% { opacity: 0; transform: translateY(4px) scale(0.94); }
+  12% { opacity: 1; transform: translateY(0) scale(1.04); }
+  22% { transform: translateY(0) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.mission-abandon {
+  align-self: flex-start; margin-top: 2px; padding: 6px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: rgba(255,243,226,0.85);
+  background: transparent; border: 1px solid rgba(255,255,255,0.3);
+}
+.mission-abandon:hover { background: rgba(255,90,60,0.25); border-color: #ff5a3c; }
+.mission-hint {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #9be15d;
+}
+
+/* ---------- Mission board ---------- */
+.mission-board-overlay {
+  position: absolute; inset: 0; z-index: 8; display: flex;
+  align-items: center; justify-content: center;
+  background: rgba(12,4,10,0.72); backdrop-filter: blur(2px);
+  animation: busted-in 0.6s ease-out both;
+}
+.mission-board {
+  width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 48px);
+  overflow-y: auto; padding: 18px 18px 20px; border-radius: 16px;
+  background: rgba(18,10,36,0.92); border: 1px solid rgba(255,210,62,0.55);
+  box-shadow: 0 0 32px rgba(255,210,62,0.2);
+}
+.mission-board-header { display: flex; justify-content: space-between; align-items: baseline; }
+.mission-board-title {
+  margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 0.14em; color: #ffd23e;
+}
+.mission-board-cash {
+  font-size: 14px; font-weight: 800; color: #9be15d;
+  padding: 4px 12px; border-radius: 999px; background: rgba(155,225,93,0.14);
+  border: 1px solid rgba(155,225,93,0.4);
+}
+.mission-board-sub { margin: 6px 0 14px; font-size: 13px; color: rgba(255,243,226,0.75); }
+.mission-board-section-title {
+  margin: 18px 0 4px; font-size: 16px; font-weight: 900; letter-spacing: 0.14em; color: #ffd23e;
+}
+.mission-board-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.mission-board-entry {
+  padding: 12px 14px; border-radius: 12px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14);
+}
+.mission-board-entry.selected { border-color: rgba(255,210,62,0.7); box-shadow: 0 0 16px rgba(255,210,62,0.2); }
+.mission-board-entry.locked { opacity: 0.6; }
+.mission-board-row { display: flex; align-items: baseline; gap: 8px; }
+.mission-board-name { font-size: 15px; font-weight: 900; letter-spacing: 0.08em; color: #fff3e2; }
+.mission-board-kind {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: #ffd23e;
+  padding: 2px 7px; border-radius: 999px; border: 1px solid rgba(255,210,62,0.5);
+}
+.mission-board-reward { margin-left: auto; font-size: 14px; font-weight: 900; color: #9be15d; }
+.mission-board-desc { margin: 6px 0 2px; font-size: 13px; color: rgba(255,243,226,0.85); }
+.mission-board-giver { margin: 0; font-size: 11.5px; color: rgba(255,243,226,0.6); }
+.mission-board-status { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mission-board-badge {
+  font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+}
+.mission-board-badge.done { color: #9be15d; background: rgba(155,225,93,0.14); border: 1px solid rgba(155,225,93,0.4); }
+.mission-board-badge.active { color: #ff5a3c; background: rgba(255,90,60,0.14); border: 1px solid rgba(255,90,60,0.5); }
+.mission-board-badge.selected { color: #ffd23e; background: rgba(255,210,62,0.12); border: 1px solid rgba(255,210,62,0.5); }
+.mission-board-badge.locked { color: rgba(255,243,226,0.7); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); }
+.mission-board-button {
+  margin-top: 10px; padding: 8px 18px; border-radius: 999px; font-size: 13px;
+  font-weight: 800; color: #201804; background: #ffd23e;
+  border: 1px solid rgba(255,255,255,0.5);
+}
+.mission-board-button:disabled { background: rgba(255,255,255,0.12); color: rgba(255,243,226,0.55); border-color: rgba(255,255,255,0.2); }
+.mission-board-close { margin-top: 14px; }
+
+/* ---------- Story board + HUD (Phase 9B) ---------- */
+/* The story board reuses the mission-board layout; teal replaces
+   yellow so the two boards are distinguishable at a glance. The
+   story HUD sits in the same slot as the job-mission HUD — the
+   two are never visible at once (one active activity at a time). */
+.story-board { border-color: rgba(45,212,191,0.55); box-shadow: 0 0 32px rgba(45,212,191,0.2); }
+.story-board .mission-board-title { color: #2dd4bf; }
+.story-board .mission-board-section-title { color: #2dd4bf; }
+.story-board-entry.selected { border-color: rgba(45,212,191,0.7); box-shadow: 0 0 16px rgba(45,212,191,0.2); }
+.story-board-entry .mission-board-kind { color: #2dd4bf; border-color: rgba(45,212,191,0.5); }
+.story-board-entry .mission-board-badge.selected { color: #2dd4bf; background: rgba(45,212,191,0.12); border-color: rgba(45,212,191,0.5); }
+.story-board-button { background: #2dd4bf; color: #042f2e; }
+.story-board-blocked {
+  margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; font-size: 12.5px;
+  font-weight: 700; color: #fda4af;
+  background: rgba(255,90,60,0.12); border: 1px solid rgba(255,90,60,0.4);
+}
+.story-board-ending {
+  margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; font-size: 12.5px;
+  font-weight: 700; color: #5eead4;
+  background: rgba(45,212,191,0.1); border: 1px solid rgba(45,212,191,0.4);
+}
+.story-board-chapter { margin-bottom: 6px; }
+.story-board-chapter-title { margin-top: 6px; }
+.story-hud { border-color: rgba(45,212,191,0.55); box-shadow: 0 0 22px rgba(45,212,191,0.18); }
+.story-hud .mission-title { color: #2dd4bf; }
+.story-hud .mission-arrow { color: #2dd4bf; text-shadow: 0 0 8px rgba(45,212,191,0.8); }
+.story-hud .mission-distance { color: #2dd4bf; }
+.story-hud .mission-flash { color: #2dd4bf; }
+.story-hud-optional { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+.story-hud-optional-pending { font-size: 12px; font-weight: 700; color: rgba(255,243,226,0.65); }
+.story-hud-optional-done { font-size: 12px; font-weight: 700; color: #5eead4; }
+
+/* ---------- Dialogue panel (Phase 9C) ---------- */
+/* Bottom-anchored narrative panel: portrait medallion and
+   name plate for the speaker, the line revealed by a
+   typewriter, choice buttons when the node offers them, a
+   Continue indicator and a Skip button. Teal accents like the
+   story HUD, the same dark glass as the mission HUD. It is a
+   narrative interface, not a chatbot: no input box, no
+   history, one line at a time. */
+.dialogue-panel {
+  position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%);
+  z-index: 9; width: min(640px, calc(100vw - 28px));
+  padding: 14px 16px 16px; border-radius: 16px; pointer-events: auto;
+  background: rgba(18,10,36,0.92); border: 1px solid rgba(45,212,191,0.55);
+  box-shadow: 0 0 32px rgba(45,212,191,0.22);
+  animation: dialogue-in 0.25s ease-out both;
+}
+@keyframes dialogue-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.dialogue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.dialogue-portrait {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 900;
+  background: rgba(255,255,255,0.06); border: 2px solid;
+}
+.dialogue-name { font-size: 14px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
+.dialogue-progress { margin-left: auto; font-size: 11px; letter-spacing: 0.1em; color: rgba(255,243,226,0.55); }
+.dialogue-skip {
+  flex: 0 0 auto; padding: 5px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
+  color: rgba(255,243,226,0.8); background: transparent; border: 1px solid rgba(255,255,255,0.3);
+}
+.dialogue-skip:hover { background: rgba(255,255,255,0.1); }
+.dialogue-text { margin: 0; font-size: 16px; line-height: 1.5; color: #fff3e2; min-height: 48px; }
+.dialogue-choices { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.dialogue-choice {
+  text-align: left; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 700;
+  color: #fff3e2; background: rgba(45,212,191,0.1); border: 1px solid rgba(45,212,191,0.45);
+}
+.dialogue-choice:hover { background: rgba(45,212,191,0.22); }
+.dialogue-choice-key {
+  display: inline-block; margin-right: 8px; padding: 1px 7px; border-radius: 6px;
+  font-size: 11px; font-weight: 900; color: #042f2e; background: #2dd4bf;
+}
+.dialogue-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 12px; }
+.dialogue-hint { font-size: 11px; letter-spacing: 0.08em; color: rgba(255,243,226,0.55); }
+.dialogue-continue {
+  padding: 8px 18px; border-radius: 999px; font-size: 13px; font-weight: 800;
+  color: #042f2e; background: #2dd4bf; border: 1px solid rgba(255,255,255,0.5);
+  animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+
+/* ---------- Cinematic overlay (letterbox frame around the live scene) ---------- */
+.cinematic-overlay {
+  position: absolute; inset: 0; z-index: 8; pointer-events: none;
+  animation: cinematic-in 0.4s ease-out both;
+}
+@keyframes cinematic-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.cinematic-bar {
+  position: absolute; left: 0; right: 0; height: max(48px, 7vh);
+  background: #000;
+}
+.cinematic-bar-top { top: 0; }
+.cinematic-bar-bottom { bottom: 0; }
+.cinematic-title {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  text-align: center; pointer-events: none;
+  animation: cinematic-title 3.2s ease-out both;
+}
+@keyframes cinematic-title {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.cinematic-chapter {
+  font-size: 12px; font-weight: 800; letter-spacing: 0.3em; text-transform: uppercase;
+  color: rgba(255,243,226,0.75); margin-bottom: 6px; text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+}
+.cinematic-title-text {
+  font-size: 34px; font-weight: 900; letter-spacing: 0.18em; color: #fff3e2;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.9), 0 0 32px rgba(45,212,191,0.35);
+}
+.cinematic-narration {
+  position: absolute; left: 50%; bottom: calc(max(48px, 7vh) + 18px); transform: translateX(-50%);
+  width: min(640px, calc(100vw - 40px)); text-align: center;
+  font-size: 17px; line-height: 1.5; font-weight: 600; color: #fff3e2;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.95), 0 0 24px rgba(0,0,0,0.8);
+  animation: cinematic-narration-in 0.5s ease-out both;
+}
+@keyframes cinematic-narration-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.cinematic-progress {
+  position: absolute; left: 50%; bottom: calc(max(48px, 7vh) - 22px); transform: translateX(-50%);
+  display: flex; gap: 7px; align-items: center;
+}
+.cinematic-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255,243,226,0.35);
+}
+.cinematic-dot.on { background: #2dd4bf; box-shadow: 0 0 8px rgba(45,212,191,0.8); }
+.cinematic-skip {
+  position: absolute; right: 16px; top: calc(max(48px, 7vh) + 12px);
+  min-height: 44px; padding: 10px 18px; border-radius: 999px;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.06em;
+  color: #fff3e2; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.4);
+  pointer-events: auto;
+}
+.cinematic-skip:hover { background: rgba(255,255,255,0.16); }
+
+/* ---------- Mission accept prompt (centred slot, like enter / surrender) ---------- */
+.mission-prompt {
+  position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%);
+  z-index: 6; pointer-events: none; text-align: center;
+}
+.mission-prompt span {
+  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+  background: rgba(32,24,4,0.85); border: 1px solid #ffd23e;
+  box-shadow: 0 0 24px rgba(255,210,62,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+.mission-prompt kbd {
+  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: #ffd23e; color: #201804; font-weight: 800;
+}
+.mission-start-button {
+  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
+  font-weight: 800; color: #201804; background: #ffd23e;
+  border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 0 24px rgba(255,210,62,0.55);
+  animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+
+/* ---------- Garage prompt (centred slot, like enter / mission) ---------- */
+.garage-prompt {
+  position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%);
+  z-index: 6; pointer-events: none; text-align: center;
+}
+.garage-prompt span {
+  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+  background: rgba(4,24,32,0.85); border: 1px solid #35c4ff;
+  box-shadow: 0 0 24px rgba(53,196,255,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+.garage-prompt kbd {
+  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: #35c4ff; color: #041820; font-weight: 800;
+}
+.garage-enter-button {
+  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
+  font-weight: 800; color: #041820; background: #35c4ff;
+  border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 0 24px rgba(53,196,255,0.55);
+  animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+
+/* ---------- Sunset Garage panel ---------- */
+.garage-overlay {
+  position: absolute; inset: 0; z-index: 8; display: flex;
+  align-items: center; justify-content: center;
+  background: rgba(12,4,10,0.72); backdrop-filter: blur(2px);
+  animation: busted-in 0.6s ease-out both;
+}
+.garage-panel {
+  width: min(860px, calc(100vw - 32px)); max-height: calc(100dvh - 48px);
+  overflow-y: auto; padding: 18px 18px 20px; border-radius: 16px;
+  background: rgba(18,10,36,0.94); border: 1px solid rgba(255,210,62,0.55);
+  box-shadow: 0 0 32px rgba(255,210,62,0.2);
+}
+.garage-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.garage-title {
+  margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 0.14em; color: #ffd23e;
+}
+.garage-sub { margin: 4px 0 0; font-size: 13px; color: rgba(255,243,226,0.75); }
+.garage-cash {
+  flex-shrink: 0; font-size: 14px; font-weight: 800; color: #9be15d;
+  padding: 6px 12px; border-radius: 999px; background: rgba(155,225,93,0.14);
+  border: 1px solid rgba(155,225,93,0.4); white-space: nowrap;
+}
+.garage-message {
+  margin: 12px 0 0; padding: 9px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 700;
+  color: #9be15d; background: rgba(155,225,93,0.12); border: 1px solid rgba(155,225,93,0.4);
+}
+.garage-message-error {
+  color: #ff8a7a; background: rgba(255,77,61,0.12); border-color: rgba(255,77,61,0.45);
+}
+.garage-grid { display: grid; grid-template-columns: 240px 1fr; gap: 16px; margin-top: 16px; }
+.garage-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.garage-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  width: 100%; padding: 12px 14px; border-radius: 12px; text-align: left;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14);
+  color: #fff3e2; font-family: inherit; cursor: pointer;
+}
+.garage-card:hover { border-color: rgba(255,210,62,0.5); }
+.garage-card.viewing { border-color: rgba(255,210,62,0.7); box-shadow: 0 0 16px rgba(255,210,62,0.2); }
+.garage-card.selected { background: rgba(255,210,62,0.1); }
+.garage-card-name { font-size: 15px; font-weight: 900; letter-spacing: 0.06em; }
+.garage-card-kind { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: #35c4ff; }
+.garage-card-price { font-size: 13px; font-weight: 800; color: #9be15d; }
+.garage-detail { min-width: 0; }
+.garage-preview-canvas { width: 100%; height: 190px; display: block; border-radius: 12px; background: #14121c; }
+.garage-detail-name { margin: 12px 0 2px; font-size: 20px; font-weight: 900; letter-spacing: 0.08em; color: #fff3e2; }
+.garage-detail-desc { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: rgba(255,243,226,0.8); }
+.garage-stats { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.garage-stat { display: grid; grid-template-columns: 110px 70px 1fr; align-items: center; gap: 10px; }
+.garage-stat-label { font-size: 12px; font-weight: 800; letter-spacing: 0.06em; color: rgba(255,243,226,0.75); }
+.garage-stat-value { font-size: 13px; font-weight: 900; color: #fff3e2; text-align: right; }
+.garage-stat-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.garage-stat-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffd23e, #ff5fa2); }
+.garage-section { margin-top: 14px; }
+.garage-section-title { margin: 0 0 8px; font-size: 13px; font-weight: 900; letter-spacing: 0.08em; color: #ffd23e; }
+.garage-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.garage-swatch {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.35); padding: 0;
+}
+.garage-swatch:hover { transform: scale(1.12); }
+.garage-swatch.current { border-color: #ffd23e; box-shadow: 0 0 0 2px rgba(255,210,62,0.5); }
+.garage-upgrades { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.garage-upgrade {
+  display: grid; grid-template-columns: 110px 54px 1fr auto; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.garage-upgrade-name { font-size: 13px; font-weight: 800; color: #fff3e2; }
+.garage-upgrade-pips { display: flex; gap: 2px; font-size: 9px; }
+.garage-upgrade-pips .pip { color: rgba(255,255,255,0.25); }
+.garage-upgrade-pips .pip.on { color: #ffd23e; }
+.garage-upgrade-stat { font-size: 12.5px; font-weight: 700; color: rgba(255,243,226,0.85); }
+.garage-upgrade-button {
+  padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 800;
+  color: #201804; background: #ffd23e; border: 1px solid rgba(255,255,255,0.5); cursor: pointer;
+}
+.garage-upgrade-button:disabled { background: rgba(255,255,255,0.12); color: rgba(255,243,226,0.55); border-color: rgba(255,255,255,0.2); cursor: not-allowed; }
+.garage-upgrade-max { font-size: 12px; font-weight: 900; letter-spacing: 0.1em; color: #9be15d; }
+.garage-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: rgba(255,243,226,0.6); }
+.garage-action {
+  display: block; width: 100%; margin-top: 14px; padding: 13px 20px; border-radius: 999px;
+  font-size: 15px; font-weight: 800; color: #201804; background: #ffd23e;
+  border: 1px solid rgba(255,255,255,0.5); cursor: pointer;
+}
+.garage-action:disabled { background: rgba(255,255,255,0.12); color: rgba(255,243,226,0.55); border-color: rgba(255,255,255,0.2); cursor: not-allowed; }
+.garage-active-note { margin: 14px 0 0; font-size: 13.5px; font-weight: 800; color: #9be15d; text-align: center; }
+.garage-close { margin-top: 16px; }
+
+/* ---------- World interactable prompt (centred slot, gold) ---------- */
+.interact-prompt {
+  position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%);
+  z-index: 6; pointer-events: none; text-align: center;
+}
+.interact-prompt span {
+  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+  background: rgba(32,24,4,0.85); border: 1px solid #ffd23e;
+  box-shadow: 0 0 24px rgba(255,210,62,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+.interact-prompt kbd {
+  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: #ffd23e; color: #201804; font-weight: 800;
+}
+.interact-button {
+  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
+  font-weight: 800; color: #201804; background: #ffd23e;
+  border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 0 24px rgba(255,210,62,0.55);
+  animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+
+/* ---------- Collectibles chip (top HUD, opens the collection) ---------- */
+.collectibles-chip {
+  cursor: pointer; font-weight: 800; color: #ffd23e;
+  border: 1px solid rgba(255,210,62,0.5);
+}
+.collectibles-chip:hover { background: rgba(255,210,62,0.2); }
+
+/* ---------- Shop list (Sunset Mart) ---------- */
+.shop-panel { width: min(640px, calc(100vw - 32px)); }
+.shop-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.shop-item {
+  display: flex; align-items: center; gap: 14px; padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.16); border-radius: 12px; background: rgba(255,255,255,0.04);
+}
+.shop-item-icon { font-size: 28px; flex-shrink: 0; }
+.shop-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.shop-item-name { font-size: 15px; font-weight: 900; letter-spacing: 0.06em; }
+.shop-item-desc { font-size: 12.5px; line-height: 1.45; color: rgba(255,243,226,0.75); }
+.shop-item-owned { font-size: 12px; font-weight: 700; color: #9be15d; }
+/* The garage action button is width:100% by default — inside the
+   shop's flex row it must size to its label, not the whole card. */
+.shop-buy { flex-shrink: 0; width: auto; margin-top: 0; }
+
+/* ---------- Collection screen ---------- */
+.collection-panel { width: min(560px, calc(100vw - 32px)); }
+.collection-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.collection-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 10px; background: rgba(255,255,255,0.03);
+}
+.collection-item.found { border-color: rgba(255,210,62,0.5); background: rgba(255,210,62,0.07); }
+.collection-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; color: rgba(255,243,226,0.5); }
+.collection-item.found .collection-icon { color: #ffd23e; }
+.collection-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.collection-name { font-size: 14px; font-weight: 800; }
+.collection-area { font-size: 11.5px; color: rgba(255,243,226,0.6); }
+.collection-status { font-size: 12px; font-weight: 800; color: rgba(255,243,226,0.6); flex-shrink: 0; }
+.collection-item.found .collection-status { color: #9be15d; }
+
+/* ---------- Sunset Sprint HUD + screens ---------- */
+.sprint-hud {
+  position: absolute; left: 50%; top: 84px; transform: translateX(-50%);
+  z-index: 6; text-align: center; pointer-events: none;
+  background: rgba(32,24,4,0.85); border: 1px solid #ffd23e; border-radius: 14px;
+  padding: 10px 22px 12px; box-shadow: 0 0 24px rgba(255,210,62,0.35);
+}
+.sprint-title { font-size: 12px; font-weight: 900; letter-spacing: 0.18em; color: #ffd23e; }
+.sprint-timer { font-size: 34px; font-weight: 900; line-height: 1.1; color: #fff3e2; }
+.sprint-checkpoints { font-size: 13px; font-weight: 800; color: rgba(255,243,226,0.85); }
+.sprint-hint { font-size: 11.5px; color: rgba(255,243,226,0.6); margin-top: 2px; }
+.sprint-screen {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 9; text-align: center; width: min(440px, calc(100vw - 32px));
+  background: rgba(18,10,36,0.95); border: 1px solid rgba(255,210,62,0.55); border-radius: 16px;
+  padding: 24px 24px 20px; box-shadow: 0 0 32px rgba(255,210,62,0.25);
+  animation: busted-in 0.6s ease-out both;
+}
+.sprint-screen-title { margin: 0 0 8px; font-size: 30px; font-weight: 900; letter-spacing: 0.08em; color: #ffd23e; }
+.sprint-screen-text { margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: rgba(255,243,226,0.9); }
+
+/* ---------- Combat HUD (crosshair, ammo, health) ---------- */
+.combat-crosshair {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 44px; height: 44px; z-index: 6; pointer-events: none;
+}
+.cross-dot {
+  position: absolute; left: 50%; top: 50%; width: 3px; height: 3px;
+  transform: translate(-50%, -50%); border-radius: 50%; background: #fff;
+  box-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+.cross-line {
+  position: absolute; background: #fff; box-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+.cross-top { left: 50%; top: 2px; width: 2px; height: 11px; transform: translateX(-50%); }
+.cross-bottom { left: 50%; bottom: 2px; width: 2px; height: 11px; transform: translateX(-50%); }
+.cross-left { left: 2px; top: 50%; width: 11px; height: 2px; transform: translateY(-50%); }
+.cross-right { right: 2px; top: 50%; width: 11px; height: 2px; transform: translateY(-50%); }
+.cross-hit {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-size: 26px; font-weight: 900; color: #ffd23e;
+  text-shadow: 0 0 8px rgba(255,210,62,0.9), 0 2px 4px rgba(0,0,0,0.8);
+}
+.combat-ammo {
+  position: absolute; right: 14px; bottom: calc(64px + env(safe-area-inset-bottom));
+  z-index: 4; text-align: right; pointer-events: none;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+}
+.combat-weapon { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; color: rgba(255,243,226,0.85); }
+.combat-counts { display: flex; align-items: baseline; justify-content: flex-end; gap: 4px; }
+.combat-mag { font-size: 44px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.combat-reserve { font-size: 15px; font-weight: 700; color: rgba(255,243,226,0.7); }
+.combat-hint { font-size: 11.5px; font-weight: 700; color: rgba(255,243,226,0.6); margin-top: 2px; }
+.combat-reload { margin-top: 2px; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #ffd23e; }
+.combat-reload-bar {
+  width: 120px; height: 5px; margin: 4px 0 0 auto; border-radius: 3px;
+  background: rgba(255,255,255,0.2); overflow: hidden;
+}
+.combat-reload-bar div { height: 100%; background: #ffd23e; border-radius: 3px; }
+.combat-health {
+  position: absolute; left: 14px; bottom: calc(64px + env(safe-area-inset-bottom));
+  z-index: 4; display: flex; align-items: center; gap: 8px; pointer-events: none;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+}
+.combat-health-icon { font-size: 18px; color: #ff5e7a; }
+.combat-health-bar {
+  width: 150px; height: 10px; border-radius: 5px; overflow: hidden;
+  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.25);
+}
+.combat-health-bar div { height: 100%; background: #7ddc5a; border-radius: 5px; }
+.combat-health.low .combat-health-bar div { background: #ff4d3d; }
+.combat-health.low .combat-health-icon { color: #ff4d3d; }
+/* Red vignette that flashes when the player takes damage. */
+.combat-damage-flash {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(200,20,20,0.5) 100%);
+  animation: damage-flash 0.35s ease-out both;
+}
+@keyframes damage-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.combat-health.low .combat-health-bar div { background: #ff4d3d; }
+.combat-health-num { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ---------- Touch combat buttons (FIRE / RELOAD / SWITCH) ---------- */
+.combat-touch {
+  position: absolute; right: 0; bottom: 0; z-index: 6; pointer-events: none;
+}
+.combat-btn {
+  position: absolute; border-radius: 50%; color: #fff; font-weight: 800;
+  border: 2px solid rgba(255,255,255,0.4); touch-action: none; pointer-events: auto;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(18,10,36,0.6);
+}
+.combat-btn:active { transform: scale(0.93); }
+.fire-button {
+  right: 20px; bottom: calc(150px + env(safe-area-inset-bottom));
+  width: 76px; height: 76px; font-size: 15px; background: rgba(210,40,50,0.65);
+}
+.fire-button:active { background: rgba(230,60,70,0.85); }
+.reload-button {
+  right: 108px; bottom: calc(158px + env(safe-area-inset-bottom));
+  width: 58px; height: 58px; font-size: 20px;
+}
+.switch-button {
+  right: 178px; bottom: calc(158px + env(safe-area-inset-bottom));
+  width: 58px; height: 58px; font-size: 20px;
+}
+
+/* ---------- Sunset Range panel ---------- */
+.range-panel { width: min(640px, calc(100vw - 32px)); }
+.range-stats {
+  display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px;
+  font-size: 13px; font-weight: 800; color: #ffd23e;
+}
+
+/* ---------- Mission complete / failed overlays ---------- */
+.mission-complete-overlay,
+.mission-failed-overlay {
+  position: absolute; inset: 0; z-index: 8; display: flex;
+  align-items: center; justify-content: center; text-align: center;
+  background: rgba(12,4,10,0.72); backdrop-filter: blur(2px);
+  animation: busted-in 0.6s ease-out both;
+}
+.mission-complete-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(160,120,10,0.5) 100%);
+}
+.mission-failed-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(120,10,20,0.55) 100%);
+}
+.mission-complete-content,
+.mission-failed-content {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; gap: 12px; padding: 0 20px;
+}
+.mission-complete-title {
+  margin: 0; font-size: 44px; font-weight: 900; letter-spacing: 0.14em;
+  color: #ffd23e; text-shadow: 0 0 32px rgba(255,210,62,0.8), 0 4px 0 rgba(0,0,0,0.4);
+}
+.mission-failed-title {
+  margin: 0; font-size: 44px; font-weight: 900; letter-spacing: 0.14em;
+  color: #ff4d3d; text-shadow: 0 0 32px rgba(255,60,40,0.8), 0 4px 0 rgba(0,0,0,0.4);
+}
+.mission-complete-message,
+.mission-failed-message { margin: 0; font-size: 17px; font-weight: 700; color: #fff3e2; }
+.mission-complete-reward {
+  margin: 0; font-size: 40px; font-weight: 900; color: #9be15d;
+  text-shadow: 0 0 24px rgba(155,225,93,0.6);
+}
+.mission-complete-sub,
+.mission-failed-sub { margin: 0; font-size: 14px; color: rgba(255,243,226,0.75); }
+.mission-complete-actions,
+.mission-failed-actions { display: flex; gap: 12px; margin-top: 10px; align-items: center; }
+
+.pause-overlay {
+  position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  background: rgba(18,10,36,0.78); backdrop-filter: blur(3px); text-align: center;
+}
+.pause-overlay h2 { margin: 0; font-size: 34px; }
+.pause-overlay p { margin: 0; color: rgba(255,243,226,0.8); }
+.pause-quit { margin-top: 4px; }
+
+/* ---------- Touch controls ---------- */
+.touch-look {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 55%; z-index: 3;
+  touch-action: none;
+}
+.touch-controls { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; pointer-events: none; }
+.joystick {
+  position: absolute; left: 18px; bottom: calc(64px + env(safe-area-inset-bottom));
+  width: 118px; height: 118px; border-radius: 50%; pointer-events: auto;
+  background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center; touch-action: none;
+}
+.joystick.active { border-color: var(--pink); background: rgba(255,94,138,0.18); }
+.joystick-knob {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(255,255,255,0.85); box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+.sprint-button {
+  position: absolute; right: 20px; bottom: calc(64px + env(safe-area-inset-bottom));
+  width: 76px; height: 76px; border-radius: 50%; pointer-events: auto;
+  border: 2px solid rgba(255,255,255,0.4); color: #fff; font-weight: 800; font-size: 14px;
+  background: rgba(255,94,138,0.55); touch-action: none;
+}
+.sprint-button:active { background: var(--pink-deep); transform: scale(0.94); }
+
+/* ---------- Vehicle: enter prompt, dashboard, drive controls ---------- */
+.enter-prompt {
+  position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%);
+  z-index: 6; pointer-events: none; text-align: center;
+}
+.enter-prompt span {
+  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+  background: rgba(18,10,36,0.78); border: 1px solid var(--pink);
+  box-shadow: 0 0 24px rgba(255,94,138,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+.enter-prompt kbd {
+  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: var(--pink); color: #fff; font-weight: 800;
+}
+.enter-button {
+  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
+  font-weight: 800; color: #fff; background: var(--pink);
+  border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 0 24px rgba(255,94,138,0.55);
+  animation: prompt-pulse 1.6s ease-in-out infinite;
+}
+@keyframes prompt-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.drive-hud {
+  position: absolute; right: 14px; bottom: calc(64px + env(safe-area-inset-bottom));
+  z-index: 4; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  pointer-events: none; text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+}
+.drive-name { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; color: rgba(255,243,226,0.85); }
+.speedo { display: flex; align-items: baseline; gap: 6px; }
+.speedo-value { font-size: 44px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.speedo-unit { font-size: 13px; font-weight: 700; color: rgba(255,243,226,0.8); }
+.speedo-gear {
+  margin-left: 6px; padding: 4px 10px; border-radius: 8px; font-size: 15px; font-weight: 800;
+  background: rgba(255,94,138,0.75); border: 1px solid rgba(255,255,255,0.35);
+}
+.drive-exit { pointer-events: auto; }
+
+.drive-controls { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 16px calc(64px + env(safe-area-inset-bottom)); }
+.drive-steer { display: flex; gap: 12px; pointer-events: auto; }
+.drive-pedals { display: flex; gap: 10px; align-items: flex-end; pointer-events: auto; }
+.drive-btn {
+  border-radius: 50%; color: #fff; font-weight: 800; touch-action: none;
+  border: 2px solid rgba(255,255,255,0.4); background: rgba(18,10,36,0.6);
+  display: flex; align-items: center; justify-content: center;
+}
+.drive-btn:active { transform: scale(0.93); }
+.steer-btn { width: 64px; height: 64px; font-size: 20px; }
+.steer-btn:active { background: rgba(53,196,255,0.6); }
+.gas-btn { width: 76px; height: 76px; font-size: 13px; background: rgba(46,160,90,0.65); }
+.gas-btn:active { background: rgba(46,200,110,0.85); }
+.brake-btn { width: 68px; height: 68px; font-size: 11px; background: rgba(210,40,50,0.6); }
+.brake-btn:active { background: rgba(230,60,70,0.85); }
+.handbrake-btn { width: 56px; height: 56px; font-size: 20px; }
+.handbrake-btn:active { background: rgba(255,178,44,0.7); }
+.exit-btn { width: 56px; height: 56px; font-size: 11px; }
+
+@media (max-width: 640px) {
+  .hud-hint { display: none; }
+  .hud-title strong { font-size: 15px; }
+  .menu-meta { max-width: 92vw; }
+  .play-button { padding: 14px 44px; font-size: 18px; }
+  .menu-skyline { bottom: 20%; }
+  /* Lift the speedo and the enter prompt above the drive pedals. */
+  .drive-hud { bottom: calc(200px + env(safe-area-inset-bottom)); }
+  /* Combat: keep the ammo clear of the FIRE row and the health
+     clear of the joystick on small screens. */
+  .combat-ammo { bottom: calc(250px + env(safe-area-inset-bottom)); }
+  .combat-mag { font-size: 36px; }
+  .combat-health { bottom: calc(235px + env(safe-area-inset-bottom)); }
+  .combat-health-bar { width: 110px; }
+  .enter-prompt { bottom: 210px; }
+  /* The surrender prompt also shows while driving, when the speedo
+     is up — lift it clear of the speedo and the pedals. */
+  .surrender-prompt { bottom: 300px; }
+  .busted-title { font-size: 44px; }
+  .speedo-value { font-size: 36px; }
+  /* The mission card sits below the wanted pill on small screens
+     (the pill is centred, ~200px wide, at the top). */
+  .mission-hud { top: 180px; width: 250px; }
+  /* The story card uses the same slot as the mission card. */
+  .story-hud { top: 180px; width: 250px; }
+  /* The dialogue panel sits above the touch controls on small
+     screens (the joystick occupies the bottom band). */
+  .dialogue-panel { bottom: 12px; width: calc(100vw - 20px); padding: 12px 12px 14px; }
+  .dialogue-text { font-size: 15px; min-height: 44px; }
+  .dialogue-choice { font-size: 13.5px; }
+  /* Cinematic: thinner bars, smaller title, narration above the
+     bottom bar, skip button clear of the top bar at 390px. */
+  .cinematic-bar { height: 44px; }
+  .cinematic-title-text { font-size: 26px; }
+  .cinematic-narration { bottom: 62px; font-size: 15px; width: calc(100vw - 32px); }
+  .cinematic-progress { bottom: 18px; }
+  .cinematic-skip { top: 56px; right: 12px; }
+  /* The contract panel sits above the health bar on small screens
+     (the top centre is the encounter banner + wanted pill). */
+  .contract-hud { top: auto; bottom: calc(300px + env(safe-area-inset-bottom)); width: 250px; }
+  .contract-name { font-size: 13px; }
+  .contract-objective, .contract-count, .contract-wave { font-size: 12px; }
+  .mission-prompt { bottom: 300px; }
+  .mission-complete-title, .mission-failed-title { font-size: 30px; }
+  .mission-complete-reward { font-size: 32px; }
+  .mission-board-title { font-size: 20px; }
+  .mission-board { padding: 14px 14px 16px; }
+  /* Garage: one column, the vehicle list on top, everything
+     scrolls inside the panel — no horizontal overflow at 390px. */
+  .garage-panel { padding: 14px 14px 16px; }
+  .garage-grid { grid-template-columns: 1fr; gap: 12px; }
+  .garage-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .garage-preview-canvas { height: 160px; }
+  .garage-prompt { bottom: 300px; }
+  .interact-prompt { bottom: 300px; }
+  .garage-title { font-size: 20px; }
+  .garage-upgrade { grid-template-columns: 84px 44px 1fr auto; gap: 8px; }
+  /* Shop: stack the buy button under the item text at 390px. */
+  .shop-item { flex-wrap: wrap; }
+  .shop-buy { width: 100%; }
+  /* Sprint: keep the timer clear of the wanted pill on small screens. */
+  .sprint-hud { top: 180px; }
+  .sprint-timer { font-size: 28px; }
+  /* 7D added the coins chip + Outfits button to the top bar — at 390px
+     the row no longer fits one line, so let the stats wrap to a second
+     row and push the wanted pill down to clear it. */
+  .hud-stats { flex-wrap: wrap; justify-content: flex-end; max-width: 76vw; }
+  .hud-chip { padding: 6px 9px; font-size: 11.5px; }
+  .hud-button { padding: 8px 11px; font-size: 12px; }
+  .wanted-hud { top: 100px; }
+}
+
+/* ---------- Menu buttons ---------- */
+.menu-buttons {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center;
+}
+.menu-button {
+  border: 1px solid rgba(255,255,255,0.4); border-radius: 999px; padding: 15px 30px;
+  font-size: 16px; font-weight: 700; letter-spacing: 0.04em; color: #fff;
+  background: rgba(18,10,36,0.55); backdrop-filter: blur(4px);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.menu-button:hover { transform: translateY(-2px); background: rgba(255,94,138,0.55); }
+.menu-button:active { transform: translateY(1px) scale(0.98); }
+
+/* ---------- Panels (Settings / About) ---------- */
+.panel-overlay {
+  position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(18,10,36,0.72); backdrop-filter: blur(4px);
+}
+.panel {
+  width: min(520px, 94vw); max-height: 88dvh; overflow-y: auto;
+  background: linear-gradient(180deg, #2b1e5e, #1a1033);
+  border: 1px solid rgba(255,255,255,0.22); border-radius: 20px;
+  padding: 22px 22px 26px; text-align: left;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+}
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.panel-head h2 { margin: 0; font-size: 24px; }
+.panel-close {
+  border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); color: #fff;
+  width: 36px; height: 36px; border-radius: 50%; font-size: 14px; flex-shrink: 0;
+}
+.panel-close:hover { background: rgba(255,94,138,0.7); }
+.setting-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 16px 2px; border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.setting-label { display: flex; flex-direction: column; gap: 3px; }
+.setting-label strong { font-size: 15px; }
+.setting-label small { font-size: 12.5px; line-height: 1.45; color: rgba(255,243,226,0.65); }
+.setting-select {
+  flex-shrink: 0; max-width: 46%; padding: 9px 10px; border-radius: 10px;
+  background: #120a24; color: var(--paper); border: 1px solid rgba(255,255,255,0.3);
+  font-size: 14px; font-family: inherit;
+}
+.setting-toggle { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--pink); }
+.panel-done { display: block; margin: 20px auto 0; padding: 13px 44px; font-size: 17px; }
+.about-body p { line-height: 1.6; font-size: 15px; color: rgba(255,243,226,0.92); }
+.about-meta { font-size: 13px !important; color: rgba(255,243,226,0.6) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-sun, .menu-cloud, .loading-sun, .game-starting-spinner { animation: none; }
+}
