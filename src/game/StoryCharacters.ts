@@ -11,6 +11,8 @@
  * be read (and validated) without starting the engine.
  */
 
+import type { CharacterDesign } from './CharacterDesign';
+
 export interface StoryCharacterInfo {
   id: string;
   /** Display name, as shown on the dialogue name plate. */
@@ -29,6 +31,12 @@ export interface StoryCharacterInfo {
     hair: string;
     skin?: string;
   };
+  /**
+   * Visual identity (Phase 1): body proportions, hairstyle,
+   * clothing silhouette and accessories. Omitted = the original
+   * Kai build. Only Mara, June and Dana carry a design so far.
+   */
+  design?: CharacterDesign;
 }
 
 export const STORY_CHARACTERS: Record<string, StoryCharacterInfo> = {
@@ -38,7 +46,11 @@ export const STORY_CHARACTERS: Record<string, StoryCharacterInfo> = {
     name: 'Mara Voss',
     color: '#2dd4bf',
     initial: 'M',
-    palette: { jacket: '#1f8f7d', shirt: '#d8d2c4', trousers: '#2e3138', hair: '#3a2a1a' },
+    palette: { jacket: '#c22e6e', shirt: '#d8d2c4', trousers: '#2e3138', hair: '#3a2a1a' },
+    // Phase 1: long dark hair, gold hoops, fuchsia jacket — the
+    // Art Bible direction. No hood, no chain: the hoops are her
+    // jewellery now.
+    design: { heightScale: 0.98, shoulderScale: 0.86, hipScale: 0.92, hairStyle: 'long', hoops: true, chain: false, hood: false },
   },
   rico: {
     id: 'rico',
@@ -53,6 +65,10 @@ export const STORY_CHARACTERS: Record<string, StoryCharacterInfo> = {
     color: '#a78bfa',
     initial: 'J',
     palette: { jacket: '#6d5bd0', shirt: '#e8e6e0', trousers: '#2e3138', hair: '#14100c' },
+    // Phase 1: chin-length bob and a dark skirt — a different
+    // silhouette from Mara's long hair and trousers, and the
+    // shortest of the three leads.
+    design: { heightScale: 0.96, shoulderScale: 0.84, hipScale: 0.94, hairStyle: 'bob', skirt: true, chain: false, hood: false },
   },
   // --- 9E: Chapter 2–3 cast ---------------------------------------------
   vic: {
@@ -68,6 +84,9 @@ export const STORY_CHARACTERS: Record<string, StoryCharacterInfo> = {
     color: '#38bdf8',
     initial: 'D',
     palette: { jacket: '#1e3a5f', shirt: '#f2f2f2', trousers: '#1c1c22', hair: '#14100c' },
+    // Phase 1: hair in a bun, dark shades, navy jacket — the
+    // tallest of the three leads, and the only one in shades.
+    design: { heightScale: 0.99, shoulderScale: 0.88, hipScale: 0.9, hairStyle: 'bun', sunglasses: true, chain: false, hood: false },
   },
   rook: {
     id: 'rook',

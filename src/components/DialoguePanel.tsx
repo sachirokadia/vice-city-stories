@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DialogueState } from '../game/Dialogue';
+import CharacterPortrait, { getPortraitDataUrl } from './CharacterPortrait';
 
 interface DialoguePanelProps {
   dialogue: DialogueState;
@@ -170,13 +171,25 @@ export default function DialoguePanel({
       key={dialogue.nodeId}
     >
       <div className="dialogue-head">
-        <span
-          className="dialogue-portrait"
-          aria-hidden="true"
-          style={{ color: dialogue.speakerColor, borderColor: dialogue.speakerColor }}
-        >
-          {dialogue.speakerInitial}
-        </span>
+        {/* Phase 1: leads with a character design get a portrait
+          rendered from the actual model; everyone else keeps the
+          initial medallion. The portrait is a cached still, so
+          the per-node remount below never re-renders it. */}
+        {getPortraitDataUrl(dialogue.speakerId) !== null ? (
+          <CharacterPortrait
+            speakerId={dialogue.speakerId}
+            speakerName={dialogue.speaker}
+            speakerColor={dialogue.speakerColor}
+          />
+        ) : (
+          <span
+            className="dialogue-portrait"
+            aria-hidden="true"
+            style={{ color: dialogue.speakerColor, borderColor: dialogue.speakerColor }}
+          >
+            {dialogue.speakerInitial}
+          </span>
+        )}
         <span className="dialogue-name" style={{ color: dialogue.speakerColor }}>
           {dialogue.speaker}
         </span>
