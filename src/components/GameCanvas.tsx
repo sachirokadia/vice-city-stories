@@ -36,6 +36,9 @@ import SprintHUD from './SprintHUD';
 import CombatHUD from './CombatHUD';
 import RangePanel from './RangePanel';
 import Minimap from './Minimap';
+import Toast, { type ToastData, type ToastTone } from './Toast';
+import { getWeapon } from '../game/Weapons';
+import { PAINT_PRICE } from '../game/GarageProgress';
 import { VcIcon } from './ui/VcIcon';
 import type { MissionBoardState, MissionHudState } from '../game/MissionTypes';
 import type { GarageUiState, UpgradeKind } from '../game/GarageProgress';
@@ -114,6 +117,43 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   // own getStats() once a second and only re-renders when the value
   // actually changes — this is not a per-frame update.
   const [cash, setCash] = useState(0);
+
+  // Shared toast (Lovable Group 1): transient feedback for real game
+  // outcomes only — purchase success / insufficient funds, wanted
+  // level up, collectible found. The timer lives in a ref so a
+  // re-render never resets the countdown; a new toast replaces the
+  // old one and restarts it.
+  const [toast, setToast] = useState<ToastData | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const notify = (message: string, tone: ToastTone) => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    setToast({ message, tone });
+    toastTimer.current = window.setTimeout(() => setToast(null), 3400);
+  };
+  // Previous wanted level / coin count, so the toast fires only on a
+  // real increase (not on every ~10Hz wanted update or re-render).
+  const prevWantedLevel = useRef(0);
+  const prevCoinsFound = useRef(0);
+  useEffect(() => {
+    if (wanted.level > prevWantedLevel.current) {
+      notify(
+        wanted.level >= 3
+          ? `Wanted level ${wanted.level} — the whole force is after you.`
+          : `Wanted level ${wanted.level} — the police are on your tail.`,
+        'danger',
+      );
+    }
+    prevWantedLevel.current = wanted.level;
+  }, [wanted.level]);
+  useEffect(() => {
+    if (drive.collectibles.found > prevCoinsFound.current) {
+      notify(
+        `Sun Coin found — ${drive.collectibles.found} of ${drive.collectibles.total}.`,
+        'success',
+      );
+    }
+    prevCoinsFound.current = drive.collectibles.found;
+  }, [drive.collectibles.found, drive.collectibles.total]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -343,6 +383,15 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.garageBuy(id);
     refreshGarage();
+    if (res.ok) {
+      const spec = garage?.vehicles.find((v) => v.spec.id === id)?.spec;
+      notify(
+        spec ? `${spec.name} acquired — $${spec.price.toLocaleString('en-US')}` : 'Vehicle acquired',
+        'success',
+      );
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this vehicle.', 'amber');
+    }
     return res;
   };
   const garageSelect = (id: string) => {
@@ -357,6 +406,11 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.garagePaint(id, hex);
     refreshGarage();
+    if (res.ok) {
+      notify(`Paint applied — $${PAINT_PRICE}`, 'success');
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for paint.', 'amber');
+    }
     return res;
   };
   const garageUpgrade = (id: string, kind: UpgradeKind) => {
@@ -364,6 +418,12 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.garageUpgrade(id, kind);
     refreshGarage();
+    if (res.ok) {
+      const name = garage?.vehicles.find((v) => v.spec.id === id)?.spec.name ?? 'Vehicle';
+      notify(`${name} upgraded`, 'success');
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this upgrade.', 'amber');
+    }
     return res;
   };
 
@@ -394,6 +454,15 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.shopBuy(id);
     refreshShop();
+    if (res.ok) {
+      const item = shop?.items.find((i) => i.id === id);
+      notify(
+        item ? `${item.name} purchased — $${item.price}` : 'Item purchased',
+        'success',
+      );
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this item.', 'amber');
+    }
     return res;
   };
 
@@ -424,6 +493,15 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.outfitBuy(id);
     refreshOutfits();
+    if (res.ok) {
+      const def = outfits?.outfits.find((o) => o.def.id === id)?.def;
+      notify(
+        def ? `${def.name} outfit unlocked — $${def.price}` : 'Outfit unlocked',
+        'success',
+      );
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this outfit.', 'amber');
+    }
     return res;
   };
   const outfitSelect = (id: string) => {
@@ -471,6 +549,15 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.rangeBuyWeapon(id);
     refreshRange();
+    if (res.ok) {
+      const def = getWeapon(id);
+      notify(
+        def ? `${def.name} acquired — $${def.price.toLocaleString('en-US')}` : 'Weapon acquired',
+        'success',
+      );
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this weapon.', 'amber');
+    }
     return res;
   };
   const rangeEquip = (id: string) => {
@@ -930,6 +1017,23 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                 <span className="speedo-unit">km/h</span>
                 <span className="speedo-gear">{drive.gear}</span>
               </div>
+              {/* Speed bar (Lovable vehicle HUD): speed as a fraction
+                  of a 200 km/h display scale — the fastest car in the
+                  game tops out at 178 km/h fully upgraded, so the bar
+                  never saturates. A display scale, not a game stat. */}
+              <div
+                className="speedo-bar"
+                role="progressbar"
+                aria-label={`Speed ${drive.speedKmh} kilometres per hour`}
+                aria-valuenow={drive.speedKmh}
+                aria-valuemin={0}
+                aria-valuemax={200}
+              >
+                <div
+                  className="speedo-bar-fill"
+                  style={{ width: `${Math.min(100, Math.round((drive.speedKmh / 200) * 100))}%` }}
+                />
+              </div>
               {!IS_TOUCH && (
                 <button
                   type="button"
@@ -1032,6 +1136,11 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
               onClose={() => setShowSettings(false)}
             />
           )}
+
+          {/* Shared toast: renders outside the hudHidden gate so a
+              purchase or wanted toast is visible while a panel is
+              open; pointer-events none, auto-dismisses. */}
+          <Toast toast={toast} />
         </>
       )}
     </div>

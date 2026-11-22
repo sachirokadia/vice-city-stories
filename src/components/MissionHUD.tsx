@@ -21,6 +21,7 @@ export default function MissionHUD({ mission, onAbandon }: MissionHudProps) {
   const seconds = mission.timeLeft === null ? 0 : mission.timeLeft % 60;
   return (
     <div className="mission-hud" aria-label={`Mission ${mission.title}`}>
+      <div className="mission-eyebrow">JOB MISSION</div>
       <div className="mission-header">
         <span className="mission-title">{mission.title}</span>
         <span className="mission-cash" aria-label={`Cash $${mission.cash}`}>

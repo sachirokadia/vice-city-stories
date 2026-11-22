@@ -25,6 +25,7 @@ export default function StoryHUD({ story, onAbandon }: StoryHudProps) {
   const doneOptional = story.optional.filter((o) => o.done);
   return (
     <div className="mission-hud story-hud" aria-label={`Story mission ${story.title}`}>
+      <div className="mission-eyebrow mission-eyebrow--story">{story.chapterTitle}</div>
       <div className="mission-header">
         <span className="mission-title">{story.title}</span>
         <span className="mission-cash" aria-label={`Cash $${story.cash}`}>

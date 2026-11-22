@@ -223,8 +223,17 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 }
 .hud-chip svg { flex: 0 0 auto; }
 .hud-sys { color: var(--vc-text-dim); }
-.hud-cash { color: var(--vc-cash); border-color: rgba(155, 225, 93, 0.45); }
-.hud-cash-num { font-variant-numeric: tabular-nums; }
+/* Lovable (Group 1): the cash is a big Bebas number, not a chip —
+   the top-right cash is the player's balance at a glance. */
+.hud-cash {
+  color: var(--vc-cash); background: transparent; border-color: transparent;
+  box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+  padding: 4px 6px; text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+}
+.hud-cash-num {
+  font-family: var(--vc-font-display); font-weight: 400; font-size: 26px;
+  line-height: 1; letter-spacing: 0.04em; font-variant-numeric: tabular-nums;
+}
 .hud-coins { color: var(--vc-job); cursor: pointer; }
 .hud-coins:hover { background: var(--vc-surface-soft); }
 .hud-button {
@@ -248,7 +257,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 }
 .hud-wanted-stars { display: inline-flex; gap: 2px; }
 .hud-wanted-star { color: rgba(255, 255, 255, 0.25); }
-.hud-wanted-star.on { color: #ffb020; filter: drop-shadow(0 0 4px rgba(255, 176, 32, 0.7)); }
+.hud-wanted-star.on { color: var(--vc-job); filter: drop-shadow(0 0 4px rgba(255, 210, 62, 0.7)); }
 .hud-wanted-status { font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; color: #ffd9d9; }
 .hud-wanted-escape {
   width: 64px; height: 5px; border-radius: var(--vc-radius-pill); overflow: hidden;
@@ -260,6 +269,41 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   text-shadow: 0 1px 8px rgba(0,0,0,0.7); max-width: 62vw;
 }
 .hud-quit { pointer-events: auto; }
+
+/* ---------- Shared toast (Lovable Group 1) --------------------------
+   Fixed top-centre glass panel, tone variants, icon in a bordered
+   square. z-index sits above overlays (see tokens.css) so a purchase
+   toast is visible while its panel is open. Entrance is
+   transform-only — base opacity is always 1, so a stalled animation
+   can never leave the toast invisible (same rule as overlays). */
+.vc-toast {
+  position: absolute; left: 50%; top: calc(max(12px, env(safe-area-inset-top)) + 8px);
+  transform: translateX(-50%); z-index: var(--vc-z-toast);
+  display: flex; align-items: center; gap: 10px;
+  width: max-content; max-width: min(390px, calc(100vw - 32px)); min-height: 52px;
+  padding: 10px 16px 10px 12px; border-radius: var(--vc-radius-md);
+  background: var(--vc-surface-strong); border: 1px solid var(--vc-border-soft);
+  box-shadow: var(--vc-shadow-md), var(--vc-shadow-neon);
+  backdrop-filter: blur(var(--vc-blur-md)); -webkit-backdrop-filter: blur(var(--vc-blur-md));
+  pointer-events: none; font-family: var(--vc-font-ui);
+  animation: vc-toast-in 0.24s ease-out;
+}
+@keyframes vc-toast-in {
+  from { transform: translateX(-50%) translateY(-6px); }
+  to { transform: translateX(-50%) translateY(0); }
+}
+.vc-toast__icon {
+  flex: 0 0 auto; width: 32px; height: 32px; border-radius: var(--vc-radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--vc-border-soft); color: var(--vc-text);
+}
+.vc-toast--success .vc-toast__icon { color: var(--vc-cash); border-color: rgba(155, 225, 93, 0.5); }
+.vc-toast--danger .vc-toast__icon { color: var(--vc-danger); border-color: var(--vc-border-danger); }
+.vc-toast--amber .vc-toast__icon { color: var(--vc-amber); border-color: rgba(255, 210, 122, 0.5); }
+.vc-toast__message {
+  font-size: 14px; font-weight: 700; color: var(--vc-text); line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
 
 /* (Wanted is rendered inside the top-right cluster now — see
    .hud-wanted above. The old top-centre .wanted-hud is gone.) */
@@ -275,8 +319,9 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   box-shadow: 0 0 24px rgba(255,90,60,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .surrender-prompt kbd {
-  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: var(--vc-danger); color: #fff; font-weight: 800;
+  padding: 4px 10px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2);
+  color: var(--vc-amber); font-size: 13px; font-weight: 800;
 }
 .surrender-button {
   pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
@@ -419,16 +464,25 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   color: var(--vc-text-dim); font-size: 12px; font-weight: 700;
 }
 
-/* ---------- Mission HUD card ---------- */
+/* ---------- Mission HUD card (Lovable Group 1: mission notice) ----
+   Lovable's notice treatment: glass panel, pink eyebrow label above
+   the title, a coloured left accent (pink for jobs, teal for story),
+   white objective text. Same slot and data as Phase 2. */
 .mission-hud {
   position: absolute; top: 64px; left: 14px; z-index: 4; width: 288px;
   padding: 12px 14px 14px; border-radius: var(--vc-radius-md); pointer-events: auto;
-  background: var(--vc-surface); border: 1px solid var(--vc-border);
-  box-shadow: var(--vc-shadow-md), 0 0 22px rgba(255,210,62,0.18);
+  background: var(--vc-gradient-panel); border: 1px solid var(--vc-border);
+  border-left: 3px solid var(--vc-pink);
+  box-shadow: var(--vc-shadow-md), var(--vc-shadow-neon);
   backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
   display: flex; flex-direction: column; gap: 6px;
   font-family: var(--vc-font-ui);
 }
+.mission-eyebrow {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.16em;
+  color: var(--vc-pink); text-transform: uppercase;
+}
+.mission-eyebrow--story { color: var(--vc-story); }
 .mission-header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .mission-title {
   font-family: var(--vc-font-display); font-weight: 400; font-size: 22px;
@@ -559,7 +613,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 }
 .story-board-chapter { margin-bottom: 6px; }
 .story-board-chapter-title { margin-top: 6px; }
-.story-hud { border-color: var(--vc-border-story); box-shadow: var(--vc-shadow-md), 0 0 22px rgba(45,212,191,0.18); }
+.story-hud { border-color: var(--vc-border-story); border-left-color: var(--vc-story); box-shadow: var(--vc-shadow-md), 0 0 22px rgba(45,212,191,0.18); }
 .story-hud .mission-title { color: var(--vc-story); }
 .story-hud .mission-arrow { color: var(--vc-story); filter: drop-shadow(0 0 6px rgba(45,212,191,0.8)); }
 .story-hud .mission-distance { color: var(--vc-story); }
@@ -695,8 +749,9 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   box-shadow: 0 0 24px rgba(255,210,62,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .mission-prompt kbd {
-  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: var(--vc-job); color: #201804; font-weight: 800;
+  padding: 4px 10px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2);
+  color: var(--vc-amber); font-size: 13px; font-weight: 800;
 }
 .mission-start-button {
   pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
@@ -717,8 +772,9 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   box-shadow: 0 0 24px rgba(53,196,255,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .garage-prompt kbd {
-  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: var(--vc-sky); color: #041820; font-weight: 800;
+  padding: 4px 10px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2);
+  color: var(--vc-amber); font-size: 13px; font-weight: 800;
 }
 .garage-enter-button {
   pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
@@ -829,8 +885,9 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   box-shadow: 0 0 24px rgba(255,210,62,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .interact-prompt kbd {
-  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: var(--vc-job); color: #201804; font-weight: 800;
+  padding: 4px 10px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2);
+  color: var(--vc-amber); font-size: 13px; font-weight: 800;
 }
 .interact-button {
   pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
@@ -900,10 +957,13 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .sprint-screen-title { margin: 0 0 8px; font-size: 30px; font-weight: 900; letter-spacing: 0.08em; color: #ffd23e; }
 .sprint-screen-text { margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: rgba(255,243,226,0.9); }
 
-/* ---------- Combat HUD (crosshair, ammo, health) ---------- */
+/* ---------- Combat HUD (crosshair, ammo, health) --------------------
+   Lovable (Group 1): tighter 30px crosshair, and the vitals cluster
+   sits in one glass panel (weapon line + health line), like the
+   Lovable player HUD. */
 .combat-crosshair {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: 44px; height: 44px; z-index: 6; pointer-events: none;
+  width: 30px; height: 30px; z-index: 6; pointer-events: none;
 }
 .cross-dot {
   position: absolute; left: 50%; top: 50%; width: 3px; height: 3px;
@@ -913,10 +973,10 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .cross-line {
   position: absolute; background: #fff; box-shadow: 0 0 4px rgba(0,0,0,0.8);
 }
-.cross-top { left: 50%; top: 2px; width: 2px; height: 11px; transform: translateX(-50%); }
-.cross-bottom { left: 50%; bottom: 2px; width: 2px; height: 11px; transform: translateX(-50%); }
-.cross-left { left: 2px; top: 50%; width: 11px; height: 2px; transform: translateY(-50%); }
-.cross-right { right: 2px; top: 50%; width: 11px; height: 2px; transform: translateY(-50%); }
+.cross-top { left: 50%; top: 0; width: 2px; height: 8px; transform: translateX(-50%); }
+.cross-bottom { left: 50%; bottom: 0; width: 2px; height: 8px; transform: translateX(-50%); }
+.cross-left { left: 0; top: 50%; width: 8px; height: 2px; transform: translateY(-50%); }
+.cross-right { right: 0; top: 50%; width: 8px; height: 2px; transform: translateY(-50%); }
 .cross-hit {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: 26px; height: 26px; color: var(--vc-job);
@@ -924,11 +984,16 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 }
 /* Bottom-right vitals cluster: weapon + ammo above, health below.
    (Health used to sit bottom-left; it moved here so the minimap owns
-   the bottom-left corner.) */
+   the bottom-left corner.) Lovable (Group 1): one glass panel for
+   the whole cluster, not a bare chip for health alone. */
 .combat-vitals {
   position: absolute; right: 14px; bottom: calc(64px + env(safe-area-inset-bottom));
   z-index: 4; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
   pointer-events: none; font-family: var(--vc-font-ui);
+  padding: 12px 14px; border-radius: var(--vc-radius-md);
+  background: var(--vc-gradient-panel); border: 1px solid var(--vc-border-soft);
+  box-shadow: var(--vc-shadow-md);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
   text-shadow: 0 2px 10px rgba(0,0,0,0.6);
 }
 .combat-ammo { text-align: right; }
@@ -951,10 +1016,6 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .combat-reload-bar div { height: 100%; background: var(--vc-job); border-radius: var(--vc-radius-sm); }
 .combat-health {
   display: flex; align-items: center; gap: 8px; pointer-events: none;
-  padding: 7px 10px; border-radius: var(--vc-radius-sm);
-  background: var(--vc-surface); border: 1px solid var(--vc-border-soft);
-  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
-  box-shadow: var(--vc-shadow-sm);
   text-shadow: none;
 }
 .combat-health-icon { color: var(--vc-pink); flex: 0 0 auto; }
@@ -1094,8 +1155,9 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   box-shadow: 0 0 24px rgba(255,94,138,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .enter-prompt kbd {
-  padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: var(--pink); color: #fff; font-weight: 800;
+  padding: 4px 10px; margin: 0 2px; border-radius: 6px; font-family: inherit;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2);
+  color: var(--vc-amber); font-size: 13px; font-weight: 800;
 }
 .enter-button {
   pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
@@ -1124,10 +1186,26 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   color: var(--vc-text); font-variant-numeric: tabular-nums;
 }
 .speedo-unit { font-size: 13px; font-weight: 700; color: var(--vc-text-dim); }
+/* Lovable (Group 1): the gear sits in a bordered square, pink border,
+   Bebas letter — the gear box from the Lovable vehicle HUD. */
 .speedo-gear {
-  margin-left: 6px; padding: 4px 10px; border-radius: var(--vc-radius-sm); font-size: 15px; font-weight: 800;
+  margin-left: 6px; min-width: 34px; height: 34px; padding: 0 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--vc-radius-xs); font-family: var(--vc-font-display);
+  font-size: 20px; font-weight: 400; letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums; color: var(--vc-text);
-  background: rgba(255,94,138,0.75); border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(18, 10, 36, 0.72); border: 1px solid var(--vc-pink);
+}
+/* Speed bar under the speedo (Lovable vehicle HUD): 4px track, pink
+   fill. Width matches the speedo block. */
+.speedo-bar {
+  width: 168px; height: 4px; border-radius: var(--vc-radius-pill);
+  background: rgba(255, 255, 255, 0.18); overflow: hidden;
+}
+.speedo-bar-fill {
+  display: block; height: 100%; border-radius: var(--vc-radius-pill);
+  background: var(--vc-gradient-pink);
+  transition: width 120ms linear;
 }
 .drive-exit { pointer-events: auto; }
 
@@ -1198,6 +1276,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   .surrender-prompt { bottom: 300px; }
   .busted-title { font-size: 44px; }
   .speedo-value { font-size: 44px; }
+  .speedo-bar { width: 120px; }
   /* The mission card sits below the wanted pill on small screens
      (the pill is centred, ~200px wide, at the top). */
   .mission-hud { top: 180px; width: 250px; }

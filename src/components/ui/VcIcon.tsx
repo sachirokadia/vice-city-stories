@@ -29,7 +29,10 @@ export type VcIconName =
   | 'coin'
   | 'reload'
   | 'switch'
-  | 'circle';
+  | 'circle'
+  | 'user'
+  | 'spark'
+  | 'gauge';
 
 const PATHS: Record<VcIconName, React.ReactNode> = {
   play: <path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none" />,
@@ -128,6 +131,26 @@ const PATHS: Record<VcIconName, React.ReactNode> = {
     </>
   ),
   circle: <circle cx="12" cy="12" r="8" />,
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 21c.8-3.6 3.8-5.5 7.5-5.5s6.7 1.9 7.5 5.5" />
+    </>
+  ),
+  spark: (
+    <>
+      <path d="M12 3.5 13.8 8.7 19 10.5 13.8 12.3 12 17.5 10.2 12.3 5 10.5 10.2 8.7z" />
+      <path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
+    </>
+  ),
+  gauge: (
+    <>
+      <path d="M4 14a8 8 0 1 1 16 0" />
+      <path d="M12 14l4.2-4.2" />
+      <circle cx="12" cy="14" r="1.6" />
+      <path d="M4 18.5h.01M20 18.5h.01" />
+    </>
+  ),
 };
 
 export interface VcIconProps {
