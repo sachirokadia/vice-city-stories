@@ -388,6 +388,33 @@ export const CINE_DEAD_DROP: CinematicDef = {
   ],
 };
 
+export const CINE_LENA_DEAD_DROP: CinematicDef = {
+  id: 'cine-lena-dead-drop',
+  title: 'DEAD DROP',
+  chapter: 'Chapter 3',
+  stage: [{ characterId: 'lena', pos: [140, 30], heading: -Math.PI / 2 }],
+  shots: [
+    {
+      id: 'lena-medium',
+      duration: 3.5,
+      pos: { kind: 'point', pos: [136, 2.2, 36] },
+      lookAt: { kind: 'point', pos: [140, 1.2, 30] },
+      posEnd: { kind: 'point', pos: [137, 2.0, 34] },
+      lookAtEnd: { kind: 'point', pos: [140, 1.2, 30] },
+      narration: 'Lena Ortiz. The boardwalk clinic patches up everyone the city knocks down.',
+    },
+    {
+      id: 'lena-wide',
+      duration: 3,
+      pos: { kind: 'point', pos: [132, 4, 42] },
+      lookAt: { kind: 'point', pos: [140, 2, 30] },
+      posEnd: { kind: 'point', pos: [134, 3.5, 38] },
+      lookAtEnd: { kind: 'point', pos: [140, 2, 30] },
+      narration: 'Three drops delivered. She has seen what the packages do to people.',
+    },
+  ],
+};
+
 export const CINE_CRANES_NEST: CinematicDef = {
   id: 'cine-cranes-nest',
   title: 'CRANE\u2019S NEST',
@@ -612,6 +639,7 @@ export const STORY_CINEMATICS: CinematicDef[] = [
   CINE_LONG_WAY_OUT,
   CINE_CHAPTER2_OUTRO,
   CINE_DEAD_DROP,
+  CINE_LENA_DEAD_DROP,
   CINE_CRANES_NEST,
   CINE_SUNSET_RUN,
   CINE_FINALE,

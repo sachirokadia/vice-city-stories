@@ -15,7 +15,7 @@
  * by editing the character's entry in StoryCharacters.ts.
  */
 
-export type HairStyle = 'short' | 'long' | 'bob' | 'bun';
+export type HairStyle = 'short' | 'long' | 'bob' | 'bun' | 'shoulder';
 
 export interface CharacterDesign {
   /** Overall height multiplier (root scale). Kai = 1. */

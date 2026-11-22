@@ -210,6 +210,14 @@ export function createCharacter(
   } else if (hairStyle === 'bun') {
     // A bun at the back-top of the head.
     add(head, track(new THREE.SphereGeometry(0.07, 10, 8)), hairMat, 0, 0.16, -0.1);
+  } else if (hairStyle === 'shoulder') {
+    // Shoulder-length: a back panel to the shoulders (on the
+    // torso, so it stays put when the head turns) plus shorter
+    // front strands — between the bob and the long style.
+    add(torso, track(new THREE.BoxGeometry(0.17, 0.32, 0.05)), hairMat, 0, 0.48, -0.14);
+    for (const s of [-1, 1]) {
+      add(head, track(new THREE.BoxGeometry(0.04, 0.18, 0.04)), hairMat, s * 0.11, -0.05, 0.08);
+    }
   }
 
   // Face parts are static relative to the head, so merge them per

@@ -1,5 +1,5 @@
 /**
- * Outfits — four original looks for the same protagonist model.
+ * Outfits — six original looks for the same protagonist model.
  * An outfit is a recolour of the character's existing materials
  * plus two visibility toggles (hood, gold chain): the face, body,
  * rig and animations are never touched, so the character moves
@@ -10,6 +10,7 @@
  * the cash balance, or the garage save.
  */
 import type { CharacterMaterials, CharacterParts } from './Character';
+import { getPalmPrintTexture } from './PalmPrintTexture';
 
 export interface OutfitDef {
   id: string;
@@ -28,6 +29,12 @@ export interface OutfitDef {
   chain: boolean;
   /** Hood visible. */
   hood: boolean;
+  /**
+   * Procedural fabric print on the jacket/sleeve materials.
+   * 'palm' paints the shared palm-print texture over the
+   * jacket colour; omitted = flat colour as before.
+   */
+  shirtTexture?: 'palm';
   /**
    * Unlock-only (9E): never buyable — earned from the story
    * (the crew jacket, for holding the beach in 2.2). The panel
@@ -99,6 +106,22 @@ export const OUTFIT_DEFS: OutfitDef[] = [
     sole: 0x2a2a30,
     chain: false,
     hood: false,
+  },
+  {
+    id: 'palm-print',
+    name: 'Palm Print',
+    description: 'Turquoise palm-print open shirt, cream trousers, gold chain. Sunset City, wearable.',
+    price: 450,
+    jacket: 0x0e7c7b,
+    sleeve: 0x0e7c7b,
+    shirt: 0xf2ead8,
+    thigh: 0xf2ead8,
+    shin: 0xf2ead8,
+    shoe: 0xf5f5f5,
+    sole: 0xe8e6e0,
+    chain: true,
+    hood: false,
+    shirtTexture: 'palm',
   },
   {
     id: 'crew-jacket',
@@ -174,6 +197,17 @@ export function applyOutfit(
   mats.shin.color.setHex(outfit.shin);
   mats.shoe.color.setHex(outfit.shoe);
   mats.sole.color.setHex(outfit.sole);
+  // Fabric print: the shared palm texture on jacket/sleeve for
+  // the Palm Print outfit, cleared for every other outfit so a
+  // print can never leak onto a flat-colour look. needsUpdate
+  // only when the map actually changes.
+  const palm = outfit.shirtTexture === 'palm' ? getPalmPrintTexture() : null;
+  for (const m of [mats.jacket, mats.sleeve]) {
+    if (m.map !== palm) {
+      m.map = palm;
+      m.needsUpdate = true;
+    }
+  }
   parts.hood.visible = outfit.hood;
   parts.chain.visible = outfit.chain;
 }

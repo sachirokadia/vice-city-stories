@@ -596,6 +596,7 @@ export const DEAD_DROP: StoryMissionDef = {
       target: { x: 140, z: 30 },
       radius: 4,
       dialogueId: 'lena-dead-drop',
+      cinematicId: 'cine-lena-dead-drop',
       line: 'You look like the drops found you first.',
     },
   ],

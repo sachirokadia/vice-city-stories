@@ -131,6 +131,13 @@ export function getPortraitDataUrl(speakerId: string): string | null {
   return url;
 }
 
+// Debug handle for verification (same pattern as __vcsPortraits
+// above): lets a harness render each speaker's portrait directly
+// and confirm the shared renderer/cache serve distinct images.
+if (typeof window !== 'undefined') {
+  (window as unknown as { __vcsPortraitFor?: typeof getPortraitDataUrl }).__vcsPortraitFor = getPortraitDataUrl;
+}
+
 interface CharacterPortraitProps {
   speakerId: string;
   speakerName: string;
