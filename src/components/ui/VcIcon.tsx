@@ -22,7 +22,14 @@ export type VcIconName =
   | 'arrow'
   | 'info'
   | 'pause'
-  | 'chevron-right';
+  | 'chevron-right'
+  | 'clock'
+  | 'warning'
+  | 'car'
+  | 'coin'
+  | 'reload'
+  | 'switch'
+  | 'circle';
 
 const PATHS: Record<VcIconName, React.ReactNode> = {
   play: <path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none" />,
@@ -83,6 +90,44 @@ const PATHS: Record<VcIconName, React.ReactNode> = {
   ),
   pause: <path d="M9.5 5v14M14.5 5v14" />,
   'chevron-right': <path d="m9 18 6-6-6-6" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </>
+  ),
+  warning: (
+    <>
+      <path d="M12 3.5 22 20H2z" />
+      <path d="M12 10v4.5M12 17.5h.01" />
+    </>
+  ),
+  car: (
+    <>
+      <path d="M4 16 5.5 9.5A2 2 0 0 1 7.4 8h9.2a2 2 0 0 1 1.9 1.5L20 16" />
+      <path d="M3 16h18v3.5h-2.5M3 16v3.5h2.5" />
+      <path d="M6.5 19.5h.01M17.5 19.5h.01" />
+      <path d="M7 12.5h10" />
+    </>
+  ),
+  coin: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4.5" />
+    </>
+  ),
+  reload: (
+    <>
+      <path d="M21 12a9 9 0 1 1-2.6-6.3" />
+      <path d="M21 3.5V9h-5.5" />
+    </>
+  ),
+  switch: (
+    <>
+      <path d="M4 7h13l-3.5-3.5M20 17H7l3.5 3.5" />
+    </>
+  ),
+  circle: <circle cx="12" cy="12" r="8" />,
 };
 
 export interface VcIconProps {

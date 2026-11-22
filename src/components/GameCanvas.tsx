@@ -35,6 +35,8 @@ import CollectionPanel from './CollectionPanel';
 import SprintHUD from './SprintHUD';
 import CombatHUD from './CombatHUD';
 import RangePanel from './RangePanel';
+import Minimap from './Minimap';
+import { VcIcon } from './ui/VcIcon';
 import type { MissionBoardState, MissionHudState } from '../game/MissionTypes';
 import type { GarageUiState, UpgradeKind } from '../game/GarageProgress';
 import type { CollectibleState } from '../game/Collectibles';
@@ -106,6 +108,12 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   const [downed, setDowned] = useState(false);
   const [encounters, setEncounters] = useState<EncounterState[]>([]);
   const [contracts, setContracts] = useState<ContractState[]>([]);
+  // Persistent cash for the top-right HUD. No engine callback fires
+  // on every cash change (shop / garage / sprint / contract rewards
+  // all go through different paths), so the HUD polls the engine's
+  // own getStats() once a second and only re-renders when the value
+  // actually changes — this is not a per-frame update.
+  const [cash, setCash] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -170,6 +178,22 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     // when Play was pressed. Later settings changes go through the
     // live setters below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persistent cash for the top-right HUD (see the `cash` state
+  // above): poll once a second, re-render only when it changes.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const engine = engineRef.current;
+      if (!engine) return;
+      try {
+        const next = engine.getStats().cash;
+        setCash((prev) => (prev === next ? prev : next));
+      } catch {
+        /* engine is mid-dispose — the next tick retries */
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
   }, []);
 
   // Live-apply settings that can change mid-session.
@@ -519,57 +543,70 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
               <span>Stories · free roam</span>
             </div>
             <div className="hud-stats">
-              {settings.showFps && <span className="hud-chip">{fps} FPS</span>}
-              {quality && <span className="hud-chip">{quality.label}</span>}
+              <span className="hud-chip hud-cash" aria-label={`Cash $${cash}`}>
+                <VcIcon name="cash" size={14} />
+                <span className="hud-cash-num">${cash.toLocaleString('en-US')}</span>
+              </span>
+              {wanted.level > 0 && (
+                <span className="hud-wanted" aria-label={`Wanted level ${wanted.level}`}>
+                  <span className="hud-wanted-stars" aria-hidden="true">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <VcIcon
+                        key={s}
+                        name="star"
+                        size={14}
+                        className={s <= wanted.level ? 'hud-wanted-star on' : 'hud-wanted-star'}
+                      />
+                    ))}
+                  </span>
+                  <span className="hud-wanted-status">
+                    {wanted.status === 'pursuit' ? 'PURSUIT' : 'SEARCHING'}
+                  </span>
+                  {wanted.status === 'search' && (
+                    <span className="hud-wanted-escape" aria-label="Escape progress">
+                      <span
+                        className="hud-wanted-escape-fill"
+                        style={{ width: `${Math.round(wanted.escapeProgress * 100)}%` }}
+                      />
+                    </span>
+                  )}
+                </span>
+              )}
+              {settings.showFps && <span className="hud-chip hud-sys">{fps} FPS</span>}
+              {quality && <span className="hud-chip hud-sys">{quality.label}</span>}
               <button
                 type="button"
-                className="hud-chip collectibles-chip"
+                className="hud-chip hud-coins"
                 onClick={openCollection}
                 aria-label={`Sunset Coins: ${drive.collectibles.found} of ${drive.collectibles.total} found`}
                 title="Sunset Coins — open your collection"
               >
-                🪙 {drive.collectibles.found}/{drive.collectibles.total}
+                <VcIcon name="coin" size={14} />
+                <span>
+                  {drive.collectibles.found}/{drive.collectibles.total}
+                </span>
               </button>
               {!hudHidden && (
                 <>
                   <button type="button" className="hud-button" onClick={openBoard} aria-label="Mission board">
-                    ☰ Missions
+                    <VcIcon name="missions" size={15} />
+                    <span>Missions</span>
                   </button>
                   <button type="button" className="hud-button" onClick={openStoryBoard} aria-label="Story board">
-                    📖 Story
+                    <VcIcon name="story" size={15} />
+                    <span>Story</span>
                   </button>
                   <button type="button" className="hud-button" onClick={openOutfits} aria-label="Outfits">
-                    👕 Outfits
+                    <VcIcon name="outfits" size={15} />
+                    <span>Outfits</span>
                   </button>
                   <button type="button" className="hud-button" onClick={togglePause} aria-label="Pause game">
-                    II Pause
+                    <VcIcon name="pause" size={15} />
+                    <span>Pause</span>
                   </button>
                 </>
               )}
             </div>
-            </div>
-          )}
-
-          {wanted.level > 0 && !hudHidden && (
-            <div className="wanted-hud" aria-label={`Wanted level ${wanted.level}`}>
-              <div className="wanted-stars" aria-hidden="true">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <span key={s} className={s <= wanted.level ? 'wanted-star on' : 'wanted-star'}>
-                    ★
-                  </span>
-                ))}
-              </div>
-              <div className="wanted-status">
-                {wanted.status === 'pursuit' ? 'POLICE PURSUIT' : 'SEARCHING — STAY HIDDEN'}
-              </div>
-              {wanted.status === 'search' && (
-                <div className="wanted-escape" aria-label="Escape progress">
-                  <div
-                    className="wanted-escape-fill"
-                    style={{ width: `${Math.round(wanted.escapeProgress * 100)}%` }}
-                  />
-                </div>
-              )}
             </div>
           )}
 
@@ -579,6 +616,10 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
 
           {story && !hudHidden && (
             <StoryHUD story={story} onAbandon={() => engineRef.current?.cancelStoryMission()} />
+          )}
+
+          {!hudHidden && (
+            <Minimap engineRef={engineRef} quality={quality} />
           )}
 
           <div className="hud hud-bottom">
@@ -592,7 +633,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   : 'WASD to move · drag to look · left-click to fire · R reload · Q switch · Shift to sprint'}
             </p>
             <button type="button" className="hud-button hud-quit" onClick={quit}>
-              ✕ Menu
+              <VcIcon name="close" size={14} />
+              <span>Menu</span>
             </button>
           </div>
 
@@ -633,7 +675,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   aria-label="Switch weapon"
                   onClick={() => engineRef.current?.cycleCombatWeapon?.()}
                 >
-                  ⇄
+                  <VcIcon name="switch" size={22} />
                 </button>
                 <button
                   type="button"
@@ -641,7 +683,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   aria-label="Reload weapon"
                   onClick={() => engineRef.current?.reloadCombatWeapon?.()}
                 >
-                  ⟳
+                  <VcIcon name="reload" size={22} />
                 </button>
                 <button
                   type="button"
@@ -673,7 +715,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   className="enter-button"
                   onClick={() => engineRef.current?.tryInteract()}
                 >
-                  ▲&nbsp; Enter {drive.vehicleName}
+                  <VcIcon name="arrow" size={15} />
+                  <span>Enter {drive.vehicleName}</span>
                 </button>
               ) : (
                 <span>
@@ -691,7 +734,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   className="surrender-button"
                   onClick={() => engineRef.current?.trySurrender()}
                 >
-                  ✋&nbsp; Surrender
+                  <VcIcon name="pause" size={15} />
+                  <span>Surrender</span>
                 </button>
               ) : (
                 <span>
@@ -719,7 +763,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   className="garage-enter-button"
                   onClick={() => engineRef.current?.tryGarageEnter()}
                 >
-                  🔧&nbsp; Enter Sunset Garage
+                  <VcIcon name="settings" size={15} />
+                  <span>Enter Sunset Garage</span>
                 </button>
               ) : (
                 <span>
@@ -741,7 +786,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                     className="mission-start-button"
                     onClick={() => engineRef.current?.tryMissionInteract()}
                   >
-                    ▶&nbsp; Start {mission.title}
+                    <VcIcon name="play" size={15} />
+                    <span>Start {mission.title}</span>
                   </button>
                 ) : (
                   <span>
@@ -763,7 +809,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                     className="mission-start-button"
                     onClick={() => engineRef.current?.tryStoryInteract()}
                   >
-                    ▶&nbsp; {story.promptLabel ?? `Start ${story.title}`}
+                    <VcIcon name="play" size={15} />
+                    <span>{story.promptLabel ?? `Start ${story.title}`}</span>
                   </button>
                 ) : (
                   <span>
@@ -790,7 +837,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                     className="interact-button"
                     onClick={() => engineRef.current?.tryInteractable()}
                   >
-                    ◆&nbsp; {drive.nearInteractable.prompt}
+                    <VcIcon name="chevron-right" size={15} />
+                    <span>{drive.nearInteractable.prompt}</span>
                   </button>
                 ) : (
                   <span>
@@ -873,7 +921,10 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
 
           {drive.mode === 'drive' && !hudHidden && (
             <div className="drive-hud" aria-label="Vehicle dashboard">
-              <div className="drive-name">{drive.vehicleName}</div>
+              <div className="drive-name">
+                <VcIcon name="car" size={15} />
+                <span>{drive.vehicleName}</span>
+              </div>
               <div className="speedo">
                 <span className="speedo-value">{drive.speedKmh}</span>
                 <span className="speedo-unit">km/h</span>

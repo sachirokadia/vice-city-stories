@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { InputState } from '../game/Input';
 import { addLook } from '../game/Input';
+import { VcIcon } from './ui/VcIcon';
 
 interface TouchControlsProps {
   input: InputState;
@@ -206,7 +207,7 @@ export default function TouchControls({ input, onSprintChange, driving, onExitVe
                 },
               )}
             >
-              ✋
+              <VcIcon name="pause" size={20} />
             </button>
             <button type="button" className="drive-btn exit-btn" aria-label="Exit vehicle" onClick={onExitVehicle}>
               EXIT

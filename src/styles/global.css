@@ -192,49 +192,77 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .game-error h2 { margin: 0; }
 .game-error p { margin: 0; max-width: 480px; color: rgba(255,243,226,0.8); }
 
+/* ---------- HUD — Phase 2 (design system) -------------------------
+   Layout: top bar (title left; cash + wanted + chips + buttons right),
+   mission/story card top-left, minimap bottom-left, vitals bottom-right,
+   drive speedo bottom-right, prompts bottom-centre. All surfaces use
+   the Phase 1 tokens; Bebas for display labels, Inter for UI text,
+   tabular numerals for cash / speed / ammo. ------------------------- */
 .hud {
   position: absolute; left: 0; right: 0; top: 0; z-index: 4;
   display: flex; justify-content: space-between; align-items: flex-start;
   padding: max(12px, env(safe-area-inset-top)) 14px 0;
-  pointer-events: none;
+  pointer-events: none; gap: 12px;
 }
 .hud-bottom { top: auto; bottom: 0; align-items: flex-end; padding: 0 14px max(12px, env(safe-area-inset-bottom)); }
-.hud-title { display: flex; flex-direction: column; line-height: 1.2; text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
-.hud-title strong { font-size: 18px; letter-spacing: 0.14em; }
-.hud-title span { font-size: 12px; color: rgba(255,243,226,0.8); }
-.hud-stats { display: flex; gap: 8px; align-items: center; pointer-events: auto; }
+.hud-title { display: flex; flex-direction: column; line-height: 1.15; text-shadow: 0 2px 10px rgba(0,0,0,0.6); flex: 0 0 auto; }
+.hud-title strong {
+  font-family: var(--vc-font-display); font-weight: 400;
+  font-size: 26px; letter-spacing: 0.1em; color: var(--vc-paper);
+}
+.hud-title span { font-size: 11px; letter-spacing: 0.08em; color: var(--vc-text-dim); }
+.hud-stats { display: flex; gap: 8px; align-items: center; pointer-events: auto; flex-wrap: wrap; justify-content: flex-end; }
 .hud-chip {
-  padding: 7px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
-  background: rgba(18,10,36,0.6); border: 1px solid rgba(255,255,255,0.2);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 11px; border-radius: var(--vc-radius-sm); font-size: 12.5px; font-weight: 700;
+  font-family: var(--vc-font-ui); font-variant-numeric: tabular-nums;
+  color: var(--vc-text);
+  background: var(--vc-surface); border: 1px solid var(--vc-border-soft);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
+  box-shadow: var(--vc-shadow-sm);
 }
+.hud-chip svg { flex: 0 0 auto; }
+.hud-sys { color: var(--vc-text-dim); }
+.hud-cash { color: var(--vc-cash); border-color: rgba(155, 225, 93, 0.45); }
+.hud-cash-num { font-variant-numeric: tabular-nums; }
+.hud-coins { color: var(--vc-job); cursor: pointer; }
+.hud-coins:hover { background: var(--vc-surface-soft); }
 .hud-button {
-  padding: 9px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff;
-  background: rgba(18,10,36,0.65); border: 1px solid rgba(255,255,255,0.3);
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px; border-radius: var(--vc-radius-sm); font-size: 13px; font-weight: 700;
+  font-family: var(--vc-font-ui); color: var(--vc-text);
+  background: var(--vc-surface); border: 1px solid var(--vc-border-soft);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
+  box-shadow: var(--vc-shadow-sm); cursor: pointer;
+  transition: background var(--vc-motion-fast) ease-out, border-color var(--vc-motion-fast) ease-out;
 }
-.hud-button:hover { background: rgba(255,94,138,0.75); }
+.hud-button:hover { background: var(--vc-surface-soft); border-color: var(--vc-pink); }
+.hud-button svg { flex: 0 0 auto; }
+/* Wanted unit, inside the top-right cluster (not a separate pill). */
+.hud-wanted {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 11px; border-radius: var(--vc-radius-sm);
+  background: rgba(60, 8, 8, 0.85); border: 1px solid var(--vc-border-danger);
+  box-shadow: var(--vc-shadow-sm);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
+}
+.hud-wanted-stars { display: inline-flex; gap: 2px; }
+.hud-wanted-star { color: rgba(255, 255, 255, 0.25); }
+.hud-wanted-star.on { color: #ffb020; filter: drop-shadow(0 0 4px rgba(255, 176, 32, 0.7)); }
+.hud-wanted-status { font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; color: #ffd9d9; }
+.hud-wanted-escape {
+  width: 64px; height: 5px; border-radius: var(--vc-radius-pill); overflow: hidden;
+  background: rgba(255, 255, 255, 0.18);
+}
+.hud-wanted-escape-fill { display: block; height: 100%; background: #ffb020; border-radius: var(--vc-radius-pill); }
 .hud-hint {
-  margin: 0; font-size: 12.5px; color: rgba(255,243,226,0.85);
+  margin: 0; font-size: 12.5px; color: var(--vc-text-dim);
   text-shadow: 0 1px 8px rgba(0,0,0,0.7); max-width: 62vw;
 }
 .hud-quit { pointer-events: auto; }
 
-/* ---------- Wanted HUD ---------- */
-.wanted-hud {
-  position: absolute; top: max(56px, calc(env(safe-area-inset-top) + 56px)); left: 50%;
-  transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column;
-  align-items: center; gap: 4px; pointer-events: none;
-  padding: 8px 14px 10px; border-radius: 14px;
-  background: rgba(18,10,36,0.6); border: 1px solid rgba(255,255,255,0.2);
-}
-.wanted-stars { display: flex; gap: 3px; font-size: 22px; line-height: 1; }
-.wanted-star { color: rgba(255,255,255,0.25); }
-.wanted-star.on { color: #ffb020; text-shadow: 0 0 10px rgba(255,176,32,0.7); }
-.wanted-status { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; color: #ffd9d9; }
-.wanted-escape {
-  width: 140px; height: 5px; border-radius: 999px; overflow: hidden;
-  background: rgba(255,255,255,0.18);
-}
-.wanted-escape-fill { height: 100%; background: #ffb020; border-radius: 999px; }
+/* (Wanted is rendered inside the top-right cluster now — see
+   .hud-wanted above. The old top-centre .wanted-hud is gone.) */
 
 /* ---------- Surrender prompt + BUSTED screen ---------- */
 .surrender-prompt {
@@ -242,19 +270,20 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   z-index: 6; pointer-events: none; text-align: center;
 }
 .surrender-prompt span {
-  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
-  background: rgba(40,8,12,0.82); border: 1px solid #ff5a3c;
+  padding: 10px 18px; border-radius: var(--vc-radius-sm); font-size: 14px; font-weight: 700;
+  background: rgba(40,8,12,0.88); border: 1px solid var(--vc-danger);
   box-shadow: 0 0 24px rgba(255,90,60,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .surrender-prompt kbd {
   padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: #ff5a3c; color: #fff; font-weight: 800;
+  background: var(--vc-danger); color: #fff; font-weight: 800;
 }
 .surrender-button {
-  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
+  pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
   font-weight: 800; color: #fff; background: #d92b1f;
   border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 0 24px rgba(255,90,60,0.55);
   animation: prompt-pulse 1.6s ease-in-out infinite;
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
 }
 .busted-overlay {
   position: absolute; inset: 0; z-index: 8; display: flex;
@@ -306,25 +335,28 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
   z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px;
   pointer-events: none; width: max-content; max-width: 92vw;
+  font-family: var(--vc-font-ui);
 }
 .encounter-banner {
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 16px; border-radius: 999px;
-  background: rgba(20,4,4,0.82); border: 1px solid rgba(255,77,61,0.7);
+  padding: 8px 16px; border-radius: var(--vc-radius-sm);
+  background: rgba(20,4,4,0.88); border: 1px solid var(--vc-border-danger);
   color: #ffe9e2; font-size: 14px; font-weight: 800; letter-spacing: 0.04em;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+  box-shadow: var(--vc-shadow-md);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
 }
-.encounter-warning { color: #ff4d3d; font-size: 16px; }
-.encounter-count { color: #ffd166; }
+.encounter-warning { color: var(--vc-danger); flex: 0 0 auto; }
+.encounter-count { color: #ffd166; font-variant-numeric: tabular-nums; }
 .encounter-toast {
-  padding: 8px 16px; border-radius: 999px;
-  background: rgba(8,30,12,0.85); border: 1px solid rgba(80,220,120,0.7);
+  padding: 8px 16px; border-radius: var(--vc-radius-sm);
+  background: rgba(8,30,12,0.88); border: 1px solid rgba(80,220,120,0.7);
   color: #d8ffe2; font-size: 14px; font-weight: 800; letter-spacing: 0.04em;
+  box-shadow: var(--vc-shadow-md);
 }
 .encounter-cooling {
-  padding: 6px 14px; border-radius: 999px;
-  background: rgba(12,12,16,0.7); border: 1px solid rgba(255,255,255,0.25);
-  color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700;
+  padding: 6px 14px; border-radius: var(--vc-radius-sm);
+  background: var(--vc-surface); border: 1px solid var(--vc-border-soft);
+  color: var(--vc-text-dim); font-size: 12px; font-weight: 700;
 }
 
 /* ---------- Combat contract HUD ---------- */
@@ -336,25 +368,30 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   position: absolute; top: 240px; left: 14px; z-index: 4; width: 288px;
   display: flex; flex-direction: column; align-items: stretch; gap: 8px;
   pointer-events: none;
+  font-family: var(--vc-font-ui);
 }
 .contract-panel {
-  padding: 10px 12px; border-radius: 14px; pointer-events: auto;
-  background: rgba(18,10,36,0.78); border: 1px solid rgba(255,210,62,0.55);
-  box-shadow: 0 0 22px rgba(255,210,62,0.18);
-  display: flex; flex-direction: column; gap: 5px;
+  padding: 12px 14px; border-radius: var(--vc-radius-md); pointer-events: auto;
+  background: var(--vc-surface); border: 1px solid var(--vc-border);
+  box-shadow: var(--vc-shadow-md), 0 0 22px rgba(255,210,62,0.18);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
+  display: flex; flex-direction: column; gap: 6px;
 }
 .contract-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.contract-name { font-size: 14px; font-weight: 900; letter-spacing: 0.1em; color: #ffd23e; }
-.contract-reward { font-size: 13px; font-weight: 900; color: #9be15d; }
-.contract-objective { font-size: 12.5px; font-weight: 700; color: #fff3e2; }
-.contract-count { font-size: 12.5px; font-weight: 800; color: #ffd166; }
-.contract-wave { font-size: 12.5px; font-weight: 800; color: #fff3e2; }
+.contract-name {
+  font-family: var(--vc-font-display); font-weight: 400; font-size: 20px;
+  letter-spacing: 0.08em; line-height: 1; color: var(--vc-job);
+}
+.contract-reward { font-size: 13px; font-weight: 800; color: var(--vc-cash); font-variant-numeric: tabular-nums; }
+.contract-objective { font-size: 12.5px; font-weight: 700; color: var(--vc-text); }
+.contract-count { font-size: 12.5px; font-weight: 800; color: #ffd166; font-variant-numeric: tabular-nums; }
+.contract-wave { font-size: 12.5px; font-weight: 800; color: var(--vc-text); font-variant-numeric: tabular-nums; }
 .contract-objective-bar {
-  position: relative; height: 18px; border-radius: 999px; overflow: hidden;
+  position: relative; height: 18px; border-radius: var(--vc-radius-sm); overflow: hidden;
   background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25);
 }
 .contract-objective-fill {
-  height: 100%; border-radius: 999px;
+  height: 100%; border-radius: var(--vc-radius-sm);
   background: linear-gradient(90deg, #ff8c2e, #ffd166);
   transition: width 0.2s ease-out;
 }
@@ -363,50 +400,62 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #1a0e02;
 }
 .contract-abandon {
-  align-self: flex-start; margin-top: 2px; padding: 5px 11px; border-radius: 999px;
-  font-size: 12px; font-weight: 700; color: rgba(255,243,226,0.85);
-  background: transparent; border: 1px solid rgba(255,255,255,0.3);
+  align-self: flex-start; margin-top: 2px; padding: 5px 11px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: var(--vc-radius-sm);
+  font-size: 12px; font-weight: 700; color: var(--vc-text-dim);
+  background: transparent; border: 1px solid var(--vc-border-soft); cursor: pointer;
 }
-.contract-abandon:hover { background: rgba(255,90,60,0.25); border-color: #ff5a3c; }
+.contract-abandon:hover { background: rgba(255,90,60,0.25); border-color: var(--vc-danger); color: var(--vc-text); }
 .contract-toast {
-  padding: 8px 16px; border-radius: 999px; text-align: center;
-  background: rgba(8,30,12,0.85); border: 1px solid rgba(80,220,120,0.7);
+  padding: 8px 16px; border-radius: var(--vc-radius-sm); text-align: center;
+  background: rgba(8,30,12,0.88); border: 1px solid rgba(80,220,120,0.7);
   color: #d8ffe2; font-size: 13px; font-weight: 800; letter-spacing: 0.04em;
+  box-shadow: var(--vc-shadow-md);
 }
 .contract-cooling {
-  padding: 6px 14px; border-radius: 999px; text-align: center;
-  background: rgba(12,12,16,0.7); border: 1px solid rgba(255,255,255,0.25);
-  color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700;
+  padding: 6px 14px; border-radius: var(--vc-radius-sm); text-align: center;
+  background: var(--vc-surface); border: 1px solid var(--vc-border-soft);
+  color: var(--vc-text-dim); font-size: 12px; font-weight: 700;
 }
 
 /* ---------- Mission HUD card ---------- */
 .mission-hud {
   position: absolute; top: 64px; left: 14px; z-index: 4; width: 288px;
-  padding: 10px 12px 12px; border-radius: 14px; pointer-events: auto;
-  background: rgba(18,10,36,0.72); border: 1px solid rgba(255,210,62,0.55);
-  box-shadow: 0 0 22px rgba(255,210,62,0.18);
-  display: flex; flex-direction: column; gap: 5px;
+  padding: 12px 14px 14px; border-radius: var(--vc-radius-md); pointer-events: auto;
+  background: var(--vc-surface); border: 1px solid var(--vc-border);
+  box-shadow: var(--vc-shadow-md), 0 0 22px rgba(255,210,62,0.18);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
+  display: flex; flex-direction: column; gap: 6px;
+  font-family: var(--vc-font-ui);
 }
-.mission-header { display: flex; justify-content: space-between; align-items: baseline; }
-.mission-title { font-size: 15px; font-weight: 900; letter-spacing: 0.12em; color: #ffd23e; }
+.mission-header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.mission-title {
+  font-family: var(--vc-font-display); font-weight: 400; font-size: 22px;
+  letter-spacing: 0.08em; line-height: 1; color: var(--vc-job);
+}
 .mission-cash {
-  font-size: 13px; font-weight: 800; color: #9be15d;
-  padding: 3px 9px; border-radius: 999px; background: rgba(155,225,93,0.14);
-  border: 1px solid rgba(155,225,93,0.4);
+  font-size: 13px; font-weight: 800; color: var(--vc-cash); font-variant-numeric: tabular-nums;
+  padding: 3px 9px; border-radius: var(--vc-radius-sm); background: rgba(155,225,93,0.14);
+  border: 1px solid rgba(155,225,93,0.4); flex: 0 0 auto;
 }
-.mission-giver { font-size: 11.5px; color: rgba(255,243,226,0.75); }
+.mission-giver { font-size: 11.5px; color: var(--vc-text-dim); }
 .mission-objective { display: flex; align-items: center; gap: 8px; }
 .mission-arrow {
-  flex: 0 0 auto; font-size: 15px; line-height: 1; color: #ffd23e;
-  text-shadow: 0 0 8px rgba(255,210,62,0.8);
+  flex: 0 0 auto; color: var(--vc-job);
+  filter: drop-shadow(0 0 6px rgba(255,210,62,0.8));
 }
-.mission-objective-text { flex: 1 1 auto; font-size: 13.5px; font-weight: 700; color: #fff3e2; }
-.mission-distance { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: #ffd23e; }
-.mission-progress { font-size: 11px; letter-spacing: 0.1em; color: rgba(255,243,226,0.65); }
-.mission-timer { font-size: 20px; font-weight: 900; letter-spacing: 0.06em; color: #fff3e2; }
-.mission-timer.urgent { color: #ff5a3c; animation: prompt-pulse 1s ease-in-out infinite; }
+.mission-objective-text { flex: 1 1 auto; font-size: 13.5px; font-weight: 700; color: var(--vc-text); }
+.mission-distance { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--vc-job); font-variant-numeric: tabular-nums; }
+.mission-progress { font-size: 11px; letter-spacing: 0.1em; color: var(--vc-text-faint); }
+.mission-timer {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 20px; font-weight: 800; letter-spacing: 0.04em; color: var(--vc-text);
+  font-variant-numeric: tabular-nums;
+}
+.mission-timer.urgent { color: var(--vc-danger); animation: prompt-pulse 1s ease-in-out infinite; }
 .mission-flash {
-  font-size: 13px; font-weight: 900; letter-spacing: 0.1em; color: #ffd23e;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.1em; color: var(--vc-job);
   animation: mission-flash-in 2.4s ease-out both;
 }
 @keyframes mission-flash-in {
@@ -417,13 +466,15 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   100% { opacity: 0; }
 }
 .mission-abandon {
-  align-self: flex-start; margin-top: 2px; padding: 6px 12px; border-radius: 999px;
-  font-size: 12px; font-weight: 700; color: rgba(255,243,226,0.85);
-  background: transparent; border: 1px solid rgba(255,255,255,0.3);
+  align-self: flex-start; margin-top: 2px; padding: 6px 12px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: var(--vc-radius-sm);
+  font-size: 12px; font-weight: 700; color: var(--vc-text-dim);
+  background: transparent; border: 1px solid var(--vc-border-soft); cursor: pointer;
 }
-.mission-abandon:hover { background: rgba(255,90,60,0.25); border-color: #ff5a3c; }
+.mission-abandon:hover { background: rgba(255,90,60,0.25); border-color: var(--vc-danger); color: var(--vc-text); }
 .mission-hint {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #9be15d;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--vc-cash);
 }
 
 /* ---------- Mission board ---------- */
@@ -508,14 +559,14 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 }
 .story-board-chapter { margin-bottom: 6px; }
 .story-board-chapter-title { margin-top: 6px; }
-.story-hud { border-color: rgba(45,212,191,0.55); box-shadow: 0 0 22px rgba(45,212,191,0.18); }
-.story-hud .mission-title { color: #2dd4bf; }
-.story-hud .mission-arrow { color: #2dd4bf; text-shadow: 0 0 8px rgba(45,212,191,0.8); }
-.story-hud .mission-distance { color: #2dd4bf; }
-.story-hud .mission-flash { color: #2dd4bf; }
+.story-hud { border-color: var(--vc-border-story); box-shadow: var(--vc-shadow-md), 0 0 22px rgba(45,212,191,0.18); }
+.story-hud .mission-title { color: var(--vc-story); }
+.story-hud .mission-arrow { color: var(--vc-story); filter: drop-shadow(0 0 6px rgba(45,212,191,0.8)); }
+.story-hud .mission-distance { color: var(--vc-story); }
+.story-hud .mission-flash { color: var(--vc-story); }
 .story-hud-optional { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
-.story-hud-optional-pending { font-size: 12px; font-weight: 700; color: rgba(255,243,226,0.65); }
-.story-hud-optional-done { font-size: 12px; font-weight: 700; color: #5eead4; }
+.story-hud-optional-pending { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--vc-text-dim); }
+.story-hud-optional-done { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #5eead4; }
 
 /* ---------- Dialogue panel (Phase 9C) ---------- */
 /* Bottom-anchored narrative panel: portrait medallion and
@@ -639,19 +690,20 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   z-index: 6; pointer-events: none; text-align: center;
 }
 .mission-prompt span {
-  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
-  background: rgba(32,24,4,0.85); border: 1px solid #ffd23e;
+  padding: 10px 18px; border-radius: var(--vc-radius-sm); font-size: 14px; font-weight: 700;
+  background: rgba(32,24,4,0.88); border: 1px solid var(--vc-job);
   box-shadow: 0 0 24px rgba(255,210,62,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .mission-prompt kbd {
   padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: #ffd23e; color: #201804; font-weight: 800;
+  background: var(--vc-job); color: #201804; font-weight: 800;
 }
 .mission-start-button {
-  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
-  font-weight: 800; color: #201804; background: #ffd23e;
+  pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
+  font-weight: 800; color: #201804; background: var(--vc-job);
   border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 0 24px rgba(255,210,62,0.55);
   animation: prompt-pulse 1.6s ease-in-out infinite;
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
 }
 
 /* ---------- Garage prompt (centred slot, like enter / mission) ---------- */
@@ -660,19 +712,20 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   z-index: 6; pointer-events: none; text-align: center;
 }
 .garage-prompt span {
-  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
-  background: rgba(4,24,32,0.85); border: 1px solid #35c4ff;
+  padding: 10px 18px; border-radius: var(--vc-radius-sm); font-size: 14px; font-weight: 700;
+  background: rgba(4,24,32,0.88); border: 1px solid var(--vc-sky);
   box-shadow: 0 0 24px rgba(53,196,255,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .garage-prompt kbd {
   padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: #35c4ff; color: #041820; font-weight: 800;
+  background: var(--vc-sky); color: #041820; font-weight: 800;
 }
 .garage-enter-button {
-  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
-  font-weight: 800; color: #041820; background: #35c4ff;
+  pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
+  font-weight: 800; color: #041820; background: var(--vc-sky);
   border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 0 24px rgba(53,196,255,0.55);
   animation: prompt-pulse 1.6s ease-in-out infinite;
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
 }
 
 /* ---------- Sunset Garage panel ---------- */
@@ -771,27 +824,23 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   z-index: 6; pointer-events: none; text-align: center;
 }
 .interact-prompt span {
-  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
-  background: rgba(32,24,4,0.85); border: 1px solid #ffd23e;
+  padding: 10px 18px; border-radius: var(--vc-radius-sm); font-size: 14px; font-weight: 700;
+  background: rgba(32,24,4,0.88); border: 1px solid var(--vc-job);
   box-shadow: 0 0 24px rgba(255,210,62,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .interact-prompt kbd {
   padding: 2px 8px; margin: 0 2px; border-radius: 6px; font-family: inherit;
-  background: #ffd23e; color: #201804; font-weight: 800;
+  background: var(--vc-job); color: #201804; font-weight: 800;
 }
 .interact-button {
-  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
-  font-weight: 800; color: #201804; background: #ffd23e;
+  pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
+  font-weight: 800; color: #201804; background: var(--vc-job);
   border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 0 24px rgba(255,210,62,0.55);
   animation: prompt-pulse 1.6s ease-in-out infinite;
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
 }
 
-/* ---------- Collectibles chip (top HUD, opens the collection) ---------- */
-.collectibles-chip {
-  cursor: pointer; font-weight: 800; color: #ffd23e;
-  border: 1px solid rgba(255,210,62,0.5);
-}
-.collectibles-chip:hover { background: rgba(255,210,62,0.2); }
+/* (The coins chip is .hud-coins in the top bar now.) */
 
 /* ---------- Shop list (Sunset Mart) ---------- */
 .shop-panel { width: min(640px, calc(100vw - 32px)); }
@@ -829,13 +878,18 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .sprint-hud {
   position: absolute; left: 50%; top: 84px; transform: translateX(-50%);
   z-index: 6; text-align: center; pointer-events: none;
-  background: rgba(32,24,4,0.85); border: 1px solid #ffd23e; border-radius: 14px;
+  background: rgba(32,24,4,0.88); border: 1px solid var(--vc-job); border-radius: var(--vc-radius-md);
   padding: 10px 22px 12px; box-shadow: 0 0 24px rgba(255,210,62,0.35);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
+  font-family: var(--vc-font-ui);
 }
-.sprint-title { font-size: 12px; font-weight: 900; letter-spacing: 0.18em; color: #ffd23e; }
-.sprint-timer { font-size: 34px; font-weight: 900; line-height: 1.1; color: #fff3e2; }
-.sprint-checkpoints { font-size: 13px; font-weight: 800; color: rgba(255,243,226,0.85); }
-.sprint-hint { font-size: 11.5px; color: rgba(255,243,226,0.6); margin-top: 2px; }
+.sprint-title {
+  font-family: var(--vc-font-display); font-weight: 400; font-size: 20px;
+  letter-spacing: 0.14em; line-height: 1; color: var(--vc-job);
+}
+.sprint-timer { font-size: 34px; font-weight: 800; line-height: 1.1; color: var(--vc-text); font-variant-numeric: tabular-nums; }
+.sprint-checkpoints { font-size: 13px; font-weight: 800; color: var(--vc-text-dim); font-variant-numeric: tabular-nums; }
+.sprint-hint { font-size: 11.5px; color: var(--vc-text-faint); margin-top: 2px; }
 .sprint-screen {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   z-index: 9; text-align: center; width: min(440px, calc(100vw - 32px));
@@ -865,38 +919,52 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .cross-right { right: 2px; top: 50%; width: 11px; height: 2px; transform: translateY(-50%); }
 .cross-hit {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  font-size: 26px; font-weight: 900; color: #ffd23e;
-  text-shadow: 0 0 8px rgba(255,210,62,0.9), 0 2px 4px rgba(0,0,0,0.8);
+  width: 26px; height: 26px; color: var(--vc-job);
+  filter: drop-shadow(0 0 6px rgba(255,210,62,0.9)) drop-shadow(0 2px 4px rgba(0,0,0,0.8));
 }
-.combat-ammo {
+/* Bottom-right vitals cluster: weapon + ammo above, health below.
+   (Health used to sit bottom-left; it moved here so the minimap owns
+   the bottom-left corner.) */
+.combat-vitals {
   position: absolute; right: 14px; bottom: calc(64px + env(safe-area-inset-bottom));
-  z-index: 4; text-align: right; pointer-events: none;
+  z-index: 4; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  pointer-events: none; font-family: var(--vc-font-ui);
   text-shadow: 0 2px 10px rgba(0,0,0,0.6);
 }
-.combat-weapon { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; color: rgba(255,243,226,0.85); }
+.combat-ammo { text-align: right; }
+.combat-weapon {
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.18em; color: var(--vc-text-dim);
+}
 .combat-counts { display: flex; align-items: baseline; justify-content: flex-end; gap: 4px; }
-.combat-mag { font-size: 44px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
-.combat-reserve { font-size: 15px; font-weight: 700; color: rgba(255,243,226,0.7); }
-.combat-hint { font-size: 11.5px; font-weight: 700; color: rgba(255,243,226,0.6); margin-top: 2px; }
-.combat-reload { margin-top: 2px; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #ffd23e; }
+.combat-mag {
+  font-family: var(--vc-font-display); font-weight: 400; font-size: 52px; line-height: 1;
+  color: var(--vc-text); font-variant-numeric: tabular-nums;
+}
+.combat-reserve { font-size: 15px; font-weight: 700; color: var(--vc-text-dim); font-variant-numeric: tabular-nums; }
+.combat-hint { font-size: 11.5px; font-weight: 700; color: var(--vc-text-faint); margin-top: 2px; }
+.combat-reload { margin-top: 2px; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--vc-job); }
 .combat-reload-bar {
-  width: 120px; height: 5px; margin: 4px 0 0 auto; border-radius: 3px;
+  width: 120px; height: 5px; margin: 4px 0 0 auto; border-radius: var(--vc-radius-sm);
   background: rgba(255,255,255,0.2); overflow: hidden;
 }
-.combat-reload-bar div { height: 100%; background: #ffd23e; border-radius: 3px; }
+.combat-reload-bar div { height: 100%; background: var(--vc-job); border-radius: var(--vc-radius-sm); }
 .combat-health {
-  position: absolute; left: 14px; bottom: calc(64px + env(safe-area-inset-bottom));
-  z-index: 4; display: flex; align-items: center; gap: 8px; pointer-events: none;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  display: flex; align-items: center; gap: 8px; pointer-events: none;
+  padding: 7px 10px; border-radius: var(--vc-radius-sm);
+  background: var(--vc-surface); border: 1px solid var(--vc-border-soft);
+  backdrop-filter: blur(var(--vc-blur-sm)); -webkit-backdrop-filter: blur(var(--vc-blur-sm));
+  box-shadow: var(--vc-shadow-sm);
+  text-shadow: none;
 }
-.combat-health-icon { font-size: 18px; color: #ff5e7a; }
+.combat-health-icon { color: var(--vc-pink); flex: 0 0 auto; }
 .combat-health-bar {
-  width: 150px; height: 10px; border-radius: 5px; overflow: hidden;
+  width: 150px; height: 10px; border-radius: var(--vc-radius-sm); overflow: hidden;
   background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.25);
 }
-.combat-health-bar div { height: 100%; background: #7ddc5a; border-radius: 5px; }
-.combat-health.low .combat-health-bar div { background: #ff4d3d; }
-.combat-health.low .combat-health-icon { color: #ff4d3d; }
+.combat-health-bar div { height: 100%; background: #7ddc5a; border-radius: var(--vc-radius-sm); }
+.combat-health.low .combat-health-bar div { background: var(--vc-danger); }
+.combat-health.low .combat-health-icon { color: var(--vc-danger); }
 /* Red vignette that flashes when the player takes damage. */
 .combat-damage-flash {
   position: absolute; inset: 0; z-index: 5; pointer-events: none;
@@ -907,8 +975,7 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   from { opacity: 1; }
   to { opacity: 0; }
 }
-.combat-health.low .combat-health-bar div { background: #ff4d3d; }
-.combat-health-num { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.combat-health-num { font-size: 14px; font-weight: 800; color: var(--vc-text); font-variant-numeric: tabular-nums; }
 
 /* ---------- Touch combat buttons (FIRE / RELOAD / SWITCH) ---------- */
 .combat-touch {
@@ -1022,8 +1089,8 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   z-index: 6; pointer-events: none; text-align: center;
 }
 .enter-prompt span {
-  padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
-  background: rgba(18,10,36,0.78); border: 1px solid var(--pink);
+  padding: 10px 18px; border-radius: var(--vc-radius-sm); font-size: 14px; font-weight: 700;
+  background: rgba(18,10,36,0.85); border: 1px solid var(--pink);
   box-shadow: 0 0 24px rgba(255,94,138,0.45); animation: prompt-pulse 1.6s ease-in-out infinite;
 }
 .enter-prompt kbd {
@@ -1031,10 +1098,11 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   background: var(--pink); color: #fff; font-weight: 800;
 }
 .enter-button {
-  pointer-events: auto; padding: 13px 26px; border-radius: 999px; font-size: 15px;
+  pointer-events: auto; padding: 13px 26px; border-radius: var(--vc-radius-sm); font-size: 15px;
   font-weight: 800; color: #fff; background: var(--pink);
   border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 0 24px rgba(255,94,138,0.55);
   animation: prompt-pulse 1.6s ease-in-out infinite;
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
 }
 @keyframes prompt-pulse {
   0%, 100% { transform: scale(1); }
@@ -1044,16 +1112,39 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   position: absolute; right: 14px; bottom: calc(64px + env(safe-area-inset-bottom));
   z-index: 4; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
   pointer-events: none; text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  font-family: var(--vc-font-ui);
 }
-.drive-name { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; color: rgba(255,243,226,0.85); }
-.speedo { display: flex; align-items: baseline; gap: 6px; }
-.speedo-value { font-size: 44px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
-.speedo-unit { font-size: 13px; font-weight: 700; color: rgba(255,243,226,0.8); }
+.drive-name {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.18em; color: var(--vc-text-dim);
+}
+.speedo { display: flex; align-items: baseline; gap: 8px; }
+.speedo-value {
+  font-family: var(--vc-font-display); font-weight: 400; font-size: 64px; line-height: 0.9;
+  color: var(--vc-text); font-variant-numeric: tabular-nums;
+}
+.speedo-unit { font-size: 13px; font-weight: 700; color: var(--vc-text-dim); }
 .speedo-gear {
-  margin-left: 6px; padding: 4px 10px; border-radius: 8px; font-size: 15px; font-weight: 800;
+  margin-left: 6px; padding: 4px 10px; border-radius: var(--vc-radius-sm); font-size: 15px; font-weight: 800;
+  font-variant-numeric: tabular-nums; color: var(--vc-text);
   background: rgba(255,94,138,0.75); border: 1px solid rgba(255,255,255,0.35);
 }
 .drive-exit { pointer-events: auto; }
+
+/* ---------- Minimap (Phase 2) -------------------------------------
+   North-up, full-city canvas from the real layout. Softly chamfered
+   square (not a circle) so the city's corners — beach, tower plaza —
+   stay visible. Bottom-left on desktop, above the joystick on touch.
+   pointer-events: none so it never blocks the joystick / look area. */
+.vc-minimap {
+  position: absolute; left: 14px; bottom: calc(64px + env(safe-area-inset-bottom));
+  z-index: 4; width: 180px; height: 180px; pointer-events: none;
+  border-radius: 22px; overflow: hidden;
+  border: 1px solid var(--vc-border-soft);
+  box-shadow: var(--vc-shadow-md), inset 0 0 0 1px rgba(18, 10, 36, 0.5);
+  background: rgba(16, 9, 34, 0.88);
+}
+.vc-minimap-canvas { display: block; width: 100%; height: 100%; }
 
 .drive-controls { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 16px calc(64px + env(safe-area-inset-bottom)); }
 .drive-steer { display: flex; gap: 12px; pointer-events: auto; }
@@ -1091,18 +1182,22 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   .menu-scrim { background: linear-gradient(180deg, rgba(18,10,36,0.6) 0%, rgba(18,10,36,0.25) 45%, rgba(18,10,36,0.6) 100%); }
   /* Lift the speedo and the enter prompt above the drive pedals. */
   .drive-hud { bottom: calc(200px + env(safe-area-inset-bottom)); }
-  /* Combat: keep the ammo clear of the FIRE row and the health
-     clear of the joystick on small screens. */
-  .combat-ammo { bottom: calc(250px + env(safe-area-inset-bottom)); }
-  .combat-mag { font-size: 36px; }
-  .combat-health { bottom: calc(235px + env(safe-area-inset-bottom)); }
+  /* Combat: the whole vitals cluster (ammo + health) sits above the
+     FIRE row on small screens. The keyboard reload/switch hint is
+     desktop-only — it must not leak onto touch. */
+  .combat-vitals { bottom: calc(250px + env(safe-area-inset-bottom)); }
+  .combat-mag { font-size: 40px; }
   .combat-health-bar { width: 110px; }
+  .combat-hint { display: none; }
+  /* Minimap: bottom-left, raised above the joystick (which occupies
+     the bottom ~182px) and clear of the drive steer buttons. */
+  .vc-minimap { left: 12px; bottom: calc(200px + env(safe-area-inset-bottom)); width: 116px; height: 116px; border-radius: 16px; }
   .enter-prompt { bottom: 210px; }
   /* The surrender prompt also shows while driving, when the speedo
      is up — lift it clear of the speedo and the pedals. */
   .surrender-prompt { bottom: 300px; }
   .busted-title { font-size: 44px; }
-  .speedo-value { font-size: 36px; }
+  .speedo-value { font-size: 44px; }
   /* The mission card sits below the wanted pill on small screens
      (the pill is centred, ~200px wide, at the top). */
   .mission-hud { top: 180px; width: 250px; }
@@ -1148,11 +1243,16 @@ button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
   .sprint-timer { font-size: 28px; }
   /* 7D added the coins chip + Outfits button to the top bar — at 390px
      the row no longer fits one line, so let the stats wrap to a second
-     row and push the wanted pill down to clear it. */
+     row. The wanted unit now lives inside the top bar (no separate
+     pill to push down). On touch the HUD buttons are icon-only so the
+     bar stays compact. */
   .hud-stats { flex-wrap: wrap; justify-content: flex-end; max-width: 76vw; }
   .hud-chip { padding: 6px 9px; font-size: 11.5px; }
   .hud-button { padding: 8px 11px; font-size: 12px; }
-  .wanted-hud { top: 100px; }
+  /* Top-bar buttons are icon-only on touch (the bottom Menu button
+     keeps its label). */
+  .hud-top .hud-button span { display: none; }
+  .hud-title strong { font-size: 22px; }
 }
 
 /* ---------- Panels (Settings / About) ---------- */
