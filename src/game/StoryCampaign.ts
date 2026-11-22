@@ -629,6 +629,14 @@ export function createStoryCampaign(
     // come back.
     updateCollectProps();
     resetCombatState();
+    // The re-entry hook in the update loop only fires when the
+    // objective id changes, so a retry to the SAME objective
+    // must clear the tracker — otherwise the current objective
+    // never re-enters and its encounter stays deactivated
+    // (3.2 CRANE'S NEST: nest-b could never be damaged after a
+    // checkpoint retry). The next tick re-enters the restored
+    // objective fresh; earlier groups stay deactivated.
+    enteredObjectiveId = '';
     // The engine moves the player (and the car, if driving).
     deps.teleport({
       playerPos: snap.playerPos,
