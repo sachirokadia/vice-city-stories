@@ -18,6 +18,9 @@ import {
 } from '../game/StoryProgress';
 import type { MissionBoardState } from '../game/MissionTypes';
 import type { StoryBoardState } from '../game/StoryTypes';
+import { VcButton } from './ui/VcButton';
+import { VcChip } from './ui/VcChip';
+import { VcStatBar } from './ui/VcStatBar';
 
 interface MainMenuProps {
   quality: QualitySettings | null;
@@ -30,10 +33,12 @@ type MenuPanel = 'none' | 'settings' | 'about' | 'missions' | 'story';
 
 /**
  * Cinematic main menu — pure React/CSS, no Three.js.
- * Original neon-sunset skyline drawn in SVG; nothing copied
- * from any existing game. Every button works: Play enters the
- * 3D city, Settings opens the real settings panel, About shows
- * the game's description.
+ * Original neon-sunset skyline drawn in SVG (with a Beacon Tower
+ * silhouette, the in-game landmark); nothing copied from any
+ * existing game. Every button works: Play enters the 3D city,
+ * Settings opens the real settings panel, About shows the
+ * game's description. Progress, cash and chapter are read live
+ * from the same saves the game itself uses.
  */
 export default function MainMenu({ quality, settings, onSettingsChange, onPlay }: MainMenuProps) {
   const [panel, setPanel] = useState<MenuPanel>('none');
@@ -78,6 +83,12 @@ export default function MainMenu({ quality, settings, onSettingsChange, onPlay }
     return `Chapter ${chapterNum} · ${done} of ${total} done`;
   };
 
+  // Live progress for the status block (same saves as above).
+  const storyProgress = loadStoryProgress();
+  const storyDone = Object.values(storyProgress.missions).filter((m) => m.completed).length;
+  const storyTotal = Object.keys(storyProgress.missions).length;
+  const cash = loadCashBalance();
+
   return (
     <div className="menu">
       <div className="menu-sky" aria-hidden="true">
@@ -86,25 +97,53 @@ export default function MainMenu({ quality, settings, onSettingsChange, onPlay }
         <div className="menu-cloud c2" />
         <div className="menu-cloud c3" />
         <svg className="menu-skyline" viewBox="0 0 1200 320" preserveAspectRatio="none" aria-hidden="true">
+          {/* Distant skyline — atmospheric perspective, lighter violet. */}
           <path
-            d="M0 320 V210 h40 v-70 h30 v70 h25 V150 h45 v60 h30 V120 h50 v90 h35 V180 h40 v-50 h30 v50 h45 V140 h55 v70 h30 V100 h45 v110 h40 V170 h35 v-60 h40 v60 h30 V130 h50 v80 h35 V190 h45 v-40 h30 v40 h40 V150 h55 v60 h30 V120 h45 v90 h40 V180 h35 v-55 h40 v55 h30 V140 h50 v70 h45 V320 Z"
-            fill="#1a1033"
+            d="M0 320 V200 h60 V150 h50 V210 h50 V120 h70 V180 h50 V90 h70 V170 h60 V140 h70 V200 h60 V110 h80 V190 h60 V130 h80 V200 h60 V150 h70 V100 h80 V180 h60 V140 h70 V200 h60 V160 h70 V120 h80 V190 h60 V150 h60 V200 h80 V320 Z"
+            fill="#3a2566"
+            opacity="0.55"
           />
+          {/* Near skyline — dark violet, with the Beacon Tower at centre. */}
+          <path
+            d="M0 320 V240 h80 V200 h70 V260 h70 V210 h80 V250 h80 V190 h80 V240 h80 V260 h40 V40 h10 V28 h16 V40 h10 V260 h82 V250 h80 V200 h80 V260 h80 V210 h80 V250 h80 V200 h80 V240 h80 V320 Z"
+            fill="#150c2b"
+          />
+          {/* Beacon light on the tower. */}
+          <circle cx="600" cy="26" r="5" fill="#ffd27a" />
+          <circle cx="600" cy="26" r="10" fill="#ffd27a" opacity="0.35" />
+          {/* Lit windows — front layer. */}
           <g fill="#ffd27a" opacity="0.85">
-            <rect x="52" y="155" width="6" height="8" />
-            <rect x="52" y="180" width="6" height="8" />
-            <rect x="150" y="165" width="6" height="8" />
-            <rect x="290" y="140" width="6" height="8" />
-            <rect x="430" y="160" width="6" height="8" />
-            <rect x="620" y="130" width="6" height="8" />
-            <rect x="800" y="170" width="6" height="8" />
-            <rect x="980" y="150" width="6" height="8" />
-            <rect x="1120" y="165" width="6" height="8" />
+            <rect x="24" y="252" width="6" height="8" />
+            <rect x="24" y="276" width="6" height="8" />
+            <rect x="104" y="216" width="6" height="8" />
+            <rect x="196" y="224" width="6" height="8" />
+            <rect x="288" y="262" width="6" height="8" />
+            <rect x="360" y="206" width="6" height="8" />
+            <rect x="448" y="252" width="6" height="8" />
+            <rect x="540" y="268" width="6" height="8" />
+            <rect x="700" y="262" width="6" height="8" />
+            <rect x="788" y="216" width="6" height="8" />
+            <rect x="880" y="224" width="6" height="8" />
+            <rect x="968" y="262" width="6" height="8" />
+            <rect x="1060" y="216" width="6" height="8" />
+            <rect x="1140" y="252" width="6" height="8" />
+          </g>
+          {/* Lit windows — distant layer. */}
+          <g fill="#ffd27a" opacity="0.4">
+            <rect x="80" y="166" width="5" height="7" />
+            <rect x="190" y="136" width="5" height="7" />
+            <rect x="320" y="106" width="5" height="7" />
+            <rect x="470" y="156" width="5" height="7" />
+            <rect x="640" y="126" width="5" height="7" />
+            <rect x="790" y="146" width="5" height="7" />
+            <rect x="950" y="116" width="5" height="7" />
+            <rect x="1100" y="136" width="5" height="7" />
           </g>
         </svg>
         <div className="menu-sea" />
         <div className="menu-road" />
       </div>
+      <div className="menu-scrim" aria-hidden="true" />
 
       <div className="menu-content">
         <p className="menu-eyebrow">An Open World Adventure</p>
@@ -118,36 +157,88 @@ export default function MainMenu({ quality, settings, onSettingsChange, onPlay }
           Walk in — the city is yours to explore.
         </p>
 
-        <div className="menu-buttons">
-          <button type="button" className="play-button" onClick={onPlay} autoFocus>
-            ▶&nbsp; Play
-          </button>
-          <button type="button" className="menu-button" onClick={openStory}>
-            📖&nbsp; Story
-          </button>
-          <button type="button" className="menu-button" onClick={openMissions}>
-            ☰&nbsp; Missions
-          </button>
-          <button type="button" className="menu-button" onClick={() => setPanel('settings')}>
-            ⚙&nbsp; Settings
-          </button>
-          <button type="button" className="menu-button" onClick={() => setPanel('about')}>
-            ⓘ&nbsp; About
-          </button>
+        <nav className="menu-nav" aria-label="Main menu">
+          <VcButton
+            variant="primary"
+            size="lg"
+            icon="play"
+            trailingIcon="chevron-right"
+            onClick={onPlay}
+            autoFocus
+            className="menu-nav-button menu-nav-play"
+          >
+            Play
+          </VcButton>
+          <VcButton
+            variant="secondary"
+            size="md"
+            icon="story"
+            trailingIcon="chevron-right"
+            onClick={openStory}
+            className="menu-nav-button"
+          >
+            Story
+          </VcButton>
+          <VcButton
+            variant="secondary"
+            size="md"
+            icon="missions"
+            trailingIcon="chevron-right"
+            onClick={openMissions}
+            className="menu-nav-button"
+          >
+            Missions
+          </VcButton>
+          <VcButton
+            variant="secondary"
+            size="md"
+            icon="settings"
+            trailingIcon="chevron-right"
+            onClick={() => setPanel('settings')}
+            className="menu-nav-button"
+          >
+            Settings
+          </VcButton>
+          <VcButton
+            variant="secondary"
+            size="md"
+            icon="info"
+            trailingIcon="chevron-right"
+            onClick={() => setPanel('about')}
+            className="menu-nav-button"
+          >
+            About
+          </VcButton>
+        </nav>
+
+        <div className="menu-progress">
+          <div className="menu-progress-head">
+            <span className="menu-progress-eyebrow">Your progress</span>
+            <VcChip tone="cash" icon="cash">
+              ${cash.toLocaleString()}
+            </VcChip>
+          </div>
+          <p className="menu-progress-line">{storyProgressLine()}</p>
+          <VcStatBar
+            label="Story"
+            value={storyDone}
+            max={Math.max(storyTotal, 1)}
+            display={`${storyDone} / ${storyTotal}`}
+            tone="story"
+          />
         </div>
-        <p className="menu-hint">Enter the city · free-roam foundation · {storyProgressLine()}</p>
 
         <div className="menu-meta">
-          <span className="menu-chip">WASD / Arrows — move</span>
-          <span className="menu-chip">Mouse drag — look</span>
-          <span className="menu-chip">Shift — sprint</span>
-          <span className="menu-chip">Touch — joystick + drag</span>
-          {quality && <span className="menu-chip menu-chip-quality">Quality: {quality.label}</span>}
+          <VcChip className="menu-hint-keyboard">WASD / Arrows — move</VcChip>
+          <VcChip className="menu-hint-keyboard">Mouse drag — look</VcChip>
+          <VcChip className="menu-hint-keyboard">Shift — sprint</VcChip>
+          <VcChip>Touch — joystick + drag</VcChip>
+          {quality && <VcChip tone="job">Quality: {quality.label}</VcChip>}
         </div>
       </div>
 
       <p className="menu-footer">
-        An original foundation. Not affiliated with any existing game.
+        An original game. Not affiliated with any existing game.
       </p>
 
       {panel === 'settings' && (

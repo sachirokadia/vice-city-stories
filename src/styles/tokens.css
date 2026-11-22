@@ -1,0 +1,127 @@
+/* ------------------------------------------------------------------
+   Vice City Stories — design tokens (Phase 1)
+   Single source of truth for colour, type, surface, motion and layers.
+   Self-hosted fonts only — no Google Fonts / CDN dependency.
+   ------------------------------------------------------------------ */
+
+/* --- Fonts -------------------------------------------------------- */
+@font-face {
+  font-family: 'Bebas Neue';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/bebas-neue-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+}
+
+:root {
+  /* --- Type ------------------------------------------------------- */
+  --vc-font-display: 'Bebas Neue', 'Arial Narrow', 'Impact', sans-serif;
+  --vc-font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* --- Core palette (approved existing identity — do not replace) - */
+  --vc-ink: #120a24;
+  --vc-violet: #2b1e5e;
+  --vc-pink: #ff5e8a;
+  --vc-pink-deep: #ff2e7a;
+  --vc-amber: #ffd27a;
+  --vc-paper: #fff3e2;
+
+  /* --- Accent language (formalised from the existing UI) ---------- */
+  --vc-job: #ffd23e;    /* job missions */
+  --vc-story: #2dd4bf;  /* story campaign */
+  --vc-cash: #9be15d;   /* cash */
+  --vc-danger: #ff4d3d; /* danger / arrest / fail */
+  --vc-sky: #35c4ff;    /* informational blue (sparingly) */
+
+  /* --- Surfaces ---------------------------------------------------- */
+  --vc-surface: rgba(18, 10, 36, 0.92);
+  --vc-surface-strong: rgba(18, 10, 36, 0.96);
+  --vc-surface-soft: rgba(43, 30, 94, 0.72);
+  --vc-overlay: rgba(12, 4, 10, 0.72);
+  --vc-overlay-strong: rgba(12, 4, 10, 0.82);
+
+  /* --- Borders ------------------------------------------------------ */
+  --vc-border: rgba(255, 210, 62, 0.45);
+  --vc-border-soft: rgba(255, 243, 226, 0.16);
+  --vc-border-story: rgba(45, 212, 191, 0.5);
+  --vc-border-danger: rgba(255, 77, 61, 0.55);
+
+  /* --- Text ---------------------------------------------------------- */
+  --vc-text: var(--vc-paper);
+  --vc-text-dim: rgba(255, 243, 226, 0.68);
+  --vc-text-faint: rgba(255, 243, 226, 0.42);
+
+  /* --- Shadows -------------------------------------------------------- */
+  --vc-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --vc-shadow-md: 0 10px 28px rgba(0, 0, 0, 0.45);
+  --vc-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.55);
+  --vc-shadow-glow-pink: 0 6px 24px rgba(255, 46, 122, 0.45);
+  --vc-shadow-glow-amber: 0 6px 24px rgba(255, 210, 62, 0.28);
+
+  /* --- Blur ------------------------------------------------------------ */
+  --vc-blur-sm: 6px;
+  --vc-blur-md: 10px;
+  --vc-blur-lg: 16px;
+
+  /* --- Radii (angular over pill — pills survive only for chips) ------- */
+  --vc-radius-sm: 8px;
+  --vc-radius-md: 12px;
+  --vc-radius-lg: 16px;
+  --vc-radius-pill: 999px;
+
+  /* --- Spacing ---------------------------------------------------------- */
+  --vc-space-1: 4px;
+  --vc-space-2: 8px;
+  --vc-space-3: 12px;
+  --vc-space-4: 16px;
+  --vc-space-5: 20px;
+  --vc-space-6: 24px;
+  --vc-space-8: 32px;
+  --vc-space-10: 40px;
+
+  /* --- Z-index layers ---------------------------------------------------- */
+  --vc-z-hud: 10;
+  --vc-z-touch: 20;
+  --vc-z-toast: 30;
+  --vc-z-overlay: 40;
+  --vc-z-dialogue: 50;
+  --vc-z-cinematic: 60;
+  --vc-z-fail: 70;
+
+  /* --- Motion --------------------------------------------------------------- */
+  --vc-motion-fast: 150ms;
+  --vc-motion-med: 240ms;
+  --vc-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- Entrance: overlays rise subtly; opacity is NEVER animated on an
+   overlay. An opacity animation can be sampled at 0 if the compositor
+   stalls, leaving a panel invisible — a transform-only entrance keeps
+   the base opacity (1) as the computed opacity at all times.
+   Never use `both`/`backwards` fill on an overlay. ------------------- */
+@keyframes vc-rise-in {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Same rise, for elements centred with translate(-50%, -50%). */
+@keyframes vc-rise-in-centred {
+  from {
+    transform: translate(-50%, calc(-50% + 6px));
+  }
+  to {
+    transform: translate(-50%, -50%);
+  }
+}
