@@ -228,21 +228,47 @@ export function buildBuildings(
   let signIdx = 0;
   for (const plot of layout.plots) {
     const style = STYLE_FOR[plot.district];
-    facadeBatchFor(facadeFor(style, plot.w, plot.h)).add(
+    const facadeMat = facadeFor(style, plot.w, plot.h);
+    facadeBatchFor(facadeMat).add(
       unitBox,
       composeMatrix(plot.x, plot.h / 2, plot.z, 0, plot.w, plot.h, plot.d),
     );
+    // WS4 — downtown podium: a wider ground-floor base (4 m tall) so
+    // the towers read as buildings on a plinth, not slabs dropped on
+    // the pad. The collision box grows to match it.
+    const podium = plot.district === 'downtown';
+    const podiumOut = podium ? 0.06 : 0;
+    if (podium) {
+      facadeBatchFor(facadeMat).add(
+        unitBox,
+        composeMatrix(plot.x, 2, plot.z, 0, plot.w * 1.12, 4, plot.d * 1.12),
+      );
+    }
+    // WS4 — downtown setback: tall towers step in above ~70% of their
+    // height (a second, narrower crown), so the skyline is stepped
+    // instead of a row of identical flat-topped slabs.
+    const setbackH = plot.district === 'downtown' && plot.h >= 30 ? plot.h * 0.28 : 0;
+    if (setbackH > 0) {
+      facadeBatchFor(facadeMat).add(
+        unitBox,
+        composeMatrix(plot.x, plot.h + setbackH / 2, plot.z, 0, plot.w * 0.62, setbackH, plot.d * 0.62),
+      );
+    }
     // Storefronts (below) stick out ~0.9 from the face side, so the
     // collision box grows by the same amount there — the player stops
     // at the shop front, not inside it.
     const faceOut =
       plot.district === 'commercial' || plot.district === 'coastal' ? 1.0 : 0;
+    const halfW = plot.w / 2 + plot.w * podiumOut + (plot.face === 'west' ? faceOut : 0);
+    const halfWPlus = plot.w / 2 + plot.w * podiumOut + (plot.face === 'east' ? faceOut : 0);
+    const halfD = plot.d / 2 + plot.d * podiumOut + (plot.face === 'north' ? faceOut : 0);
+    const halfDPlus = plot.d / 2 + plot.d * podiumOut + (plot.face === 'south' ? faceOut : 0);
     buildings.push({
-      minX: plot.x - plot.w / 2 - (plot.face === 'west' ? faceOut : 0),
-      maxX: plot.x + plot.w / 2 + (plot.face === 'east' ? faceOut : 0),
-      minZ: plot.z - plot.d / 2 - (plot.face === 'north' ? faceOut : 0),
-      maxZ: plot.z + plot.d / 2 + (plot.face === 'south' ? faceOut : 0),
-      maxY: plot.h,
+      minX: plot.x - halfW,
+      maxX: plot.x + halfWPlus,
+      minZ: plot.z - halfD,
+      maxZ: plot.z + halfDPlus,
+      maxY: plot.h + setbackH,
     });
 
     // Dark roof cap: hides the window texture on the top face and
@@ -251,12 +277,37 @@ export function buildBuildings(
       unitBox,
       composeMatrix(plot.x, plot.h + 0.08, plot.z, 0, plot.w + 0.1, 0.3, plot.d + 0.1),
     );
+    // WS4 — parapet rim: four thin boxes around the roof edge (not
+    // downtown — those get the setback crown instead). Reads as a
+    // raised roofline from the street and from the follow camera.
+    if (setbackH === 0 && plot.district !== 'park') {
+      const pt = 0.35; // parapet thickness
+      const ph = 0.7; // parapet height above the roof
+      const px = plot.w / 2 - pt / 2;
+      const pz = plot.d / 2 - pt / 2;
+      roofBatch.add(unitBox, composeMatrix(plot.x - px, plot.h + ph / 2, plot.z, 0, pt, ph, plot.d));
+      roofBatch.add(unitBox, composeMatrix(plot.x + px, plot.h + ph / 2, plot.z, 0, pt, ph, plot.d));
+      roofBatch.add(unitBox, composeMatrix(plot.x, plot.h + ph / 2, plot.z - pz, 0, plot.w, ph, pt));
+      roofBatch.add(unitBox, composeMatrix(plot.x, plot.h + ph / 2, plot.z + pz, 0, plot.w, ph, pt));
+    }
+    // Setback crown gets its own cap + neon trim.
+    if (setbackH > 0) {
+      roofBatch.add(
+        unitBox,
+        composeMatrix(plot.x, plot.h + setbackH + 0.08, plot.z, 0, plot.w * 0.62 + 0.1, 0.3, plot.d * 0.62 + 0.1),
+      );
+    }
 
-    // Neon roof trim on the skyline buildings.
+    // Neon roof trim on the skyline buildings. On a setback tower the
+    // trim rides the crown top, not the main roof (the main-roof slab
+    // would be buried inside the setback).
     if (detailed && (plot.district === 'downtown' || plot.district === 'coastal')) {
+      const trimY = plot.h + setbackH + 0.1;
+      const trimW = setbackH > 0 ? plot.w * 0.62 + 0.3 : plot.w + 0.3;
+      const trimD = setbackH > 0 ? plot.d * 0.62 + 0.3 : plot.d + 0.3;
       trimBatchFor(plot.district === 'downtown' ? trimMat : trimMat2).add(
         unitBox,
-        composeMatrix(plot.x, plot.h + 0.1, plot.z, 0, plot.w + 0.3, 0.35, plot.d + 0.3),
+        composeMatrix(plot.x, trimY, plot.z, 0, trimW, 0.35, trimD),
       );
     }
 

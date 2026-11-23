@@ -23,13 +23,24 @@ export function buildVegetation(
   };
 
   // --- Palms: promenade row + avenue rows (capped by quality) ---------
-  const palmXf: THREE.Matrix4[] = [];
-  for (let z = -CITY_HALF + 10; z < CITY_HALF; z += 14) {
-    dummy.position.set(134.5, 0, z);
-    dummy.rotation.set(0, 0, 0);
-    dummy.scale.set(1, 1, 1);
+  // WS4: no two palms match now. Each palm gets its own height
+  // (0.8–1.3x), a slight lean, a random yaw and — for a minority — a
+  // short bushy variant. The trunk/leaf offsets are applied in the
+  // palm's local space (after scale + lean), so the crown stays on
+  // top of its own trunk.
+  const palmBase: THREE.Matrix4[] = [];
+  const shortPalmBase: THREE.Matrix4[] = [];
+  const palmMatrix = (x: number, z: number, s: number): THREE.Matrix4 => {
+    dummy.position.set(x, 0, z);
+    // Lean up to ~4 degrees, yaw anywhere.
+    dummy.rotation.set((rand() - 0.5) * 0.14, rand() * Math.PI * 2, (rand() - 0.5) * 0.14);
+    dummy.scale.set(s, s, s);
     dummy.updateMatrix();
-    palmXf.push(dummy.matrix.clone());
+    return dummy.matrix.clone();
+  };
+  for (let z = -CITY_HALF + 10; z < CITY_HALF; z += 14) {
+    // Promenade palms run tallest (the beachfront row).
+    palmBase.push(palmMatrix(134.5, z, 1.05 + rand() * 0.25));
   }
   const avenuePalms: THREE.Matrix4[] = [];
   for (const sx of layout.streetsX) {
@@ -37,11 +48,7 @@ export function buildVegetation(
       // Keep the spawn plaza clear — a palm next to spawn hangs its
       // leaves straight over the opening camera shot.
       if (Math.hypot(sx + 8.6, z - 8) < 16) continue;
-      dummy.position.set(sx + 8.6, 0, z);
-      dummy.rotation.set(0, 0, 0);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      avenuePalms.push(dummy.matrix.clone());
+      avenuePalms.push(palmMatrix(sx + 8.6, z, 0.8 + rand() * 0.45));
     }
   }
   // Shuffle the avenue palms deterministically and take the budget.
@@ -49,29 +56,88 @@ export function buildVegetation(
     const j = Math.floor(rand() * (i + 1));
     [avenuePalms[i], avenuePalms[j]] = [avenuePalms[j], avenuePalms[i]];
   }
-  palmXf.push(...avenuePalms.slice(0, Math.max(0, quality.palmCount)));
+  const keptAvenue = avenuePalms.slice(0, Math.max(0, quality.palmCount));
+  // One in five kept avenue palms is the short bushy variant.
+  for (const m of keptAvenue) {
+    (rand() < 0.2 ? shortPalmBase : palmBase).push(m);
+  }
+  const palmXf = palmBase;
+  const up = (m: THREE.Matrix4, y: number): THREE.Matrix4 =>
+    m.clone().multiply(new THREE.Matrix4().makeTranslation(0, y, 0));
 
   if (palmXf.length > 0) {
     const trunkGeo = track(new THREE.CylinderGeometry(0.16, 0.24, 4.6, 6));
     const trunkMat = track(new THREE.MeshStandardMaterial({ color: 0x8a6f4d, roughness: 0.9 }));
     const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, palmXf.length);
-    palmXf.forEach((m, i) => {
-      const p = new THREE.Matrix4().copy(m);
-      p.setPosition(new THREE.Vector3(m.elements[12], 2.3, m.elements[14]));
-      trunks.setMatrixAt(i, p);
-    });
+    palmXf.forEach((m, i) => trunks.setMatrixAt(i, up(m, 2.3)));
     trunks.castShadow = true;
     group.add(trunks);
     const leafGeo = track(new THREE.ConeGeometry(2.1, 2.8, 7));
     const leafMat = track(new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.85 }));
     const leaves = new THREE.InstancedMesh(leafGeo, leafMat, palmXf.length);
-    palmXf.forEach((m, i) => {
-      const p = new THREE.Matrix4().copy(m);
-      p.setPosition(new THREE.Vector3(m.elements[12], 5.4, m.elements[14]));
-      leaves.setMatrixAt(i, p);
-    });
+    palmXf.forEach((m, i) => leaves.setMatrixAt(i, up(m, 5.4)));
     leaves.castShadow = true;
     group.add(leaves);
+  }
+  if (shortPalmBase.length > 0) {
+    // Short bushy palms: squatter trunk, wider crown.
+    const trunkGeo = track(new THREE.CylinderGeometry(0.14, 0.22, 3.0, 6));
+    const trunkMat = track(new THREE.MeshStandardMaterial({ color: 0x7d6244, roughness: 0.9 }));
+    const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, shortPalmBase.length);
+    shortPalmBase.forEach((m, i) => trunks.setMatrixAt(i, up(m, 1.5)));
+    trunks.castShadow = true;
+    group.add(trunks);
+    const leafGeo = track(new THREE.ConeGeometry(2.5, 2.2, 7));
+    const leafMat = track(new THREE.MeshStandardMaterial({ color: 0x37935f, roughness: 0.85 }));
+    const leaves = new THREE.InstancedMesh(leafGeo, leafMat, shortPalmBase.length);
+    shortPalmBase.forEach((m, i) => leaves.setMatrixAt(i, up(m, 3.4)));
+    leaves.castShadow = true;
+    group.add(leaves);
+  }
+
+  // --- Sidewalk shrubs: low planters along the avenues ----------------
+  // One merged instanced set, placed on the sidewalk edge opposite the
+  // palm rows so they never block a lane or a doorway.
+  const shrubXf: THREE.Matrix4[] = [];
+  for (const sx of layout.streetsX) {
+    for (let z = -CITY_HALF + 26; z < CITY_HALF; z += 24) {
+      if (Math.hypot(sx - 8.6, z - 8) < 14) continue; // spawn plaza clear
+      dummy.position.set(sx - 8.6, 0.35, z);
+      dummy.rotation.set(0, rand() * Math.PI, 0);
+      dummy.scale.set(0.9 + rand() * 0.5, 0.55 + rand() * 0.25, 0.9 + rand() * 0.5);
+      dummy.updateMatrix();
+      shrubXf.push(dummy.matrix.clone());
+    }
+  }
+  if (shrubXf.length > 0) {
+    const shrubs = new THREE.InstancedMesh(
+      track(new THREE.IcosahedronGeometry(0.9, 0)),
+      track(new THREE.MeshStandardMaterial({ color: 0x3a7d44, roughness: 0.95 })),
+      shrubXf.length,
+    );
+    setInst(shrubs, shrubXf);
+    shrubs.castShadow = true;
+  }
+
+  // --- Beach dune grass: thin tufts scattered across the sand ---------
+  const grassXf: THREE.Matrix4[] = [];
+  const duneRand = mulberry32(4242);
+  for (let i = 0; i < 90; i++) {
+    const x = layout.beachStartX + 2 + duneRand() * 48;
+    const z = -CITY_HALF + 12 + duneRand() * (CITY_HALF * 2 - 24);
+    dummy.position.set(x, 0.5, z);
+    dummy.rotation.set((duneRand() - 0.5) * 0.5, duneRand() * Math.PI, (duneRand() - 0.5) * 0.5);
+    dummy.scale.set(0.7 + duneRand() * 0.9, 0.8 + duneRand() * 0.9, 0.7 + duneRand() * 0.9);
+    dummy.updateMatrix();
+    grassXf.push(dummy.matrix.clone());
+  }
+  if (grassXf.length > 0) {
+    const tufts = new THREE.InstancedMesh(
+      track(new THREE.ConeGeometry(0.55, 1.1, 5)),
+      track(new THREE.MeshStandardMaterial({ color: 0x9aa860, roughness: 1 })),
+      grassXf.length,
+    );
+    setInst(tufts, grassXf);
   }
 
   // --- Parks: grass, trees, benches ------------------------------------
@@ -92,12 +158,14 @@ export function buildVegetation(
     for (let i = 0; i < 9; i++) {
       const x = park.minX + 6 + prand() * (park.maxX - park.minX - 12);
       const z = park.minZ + 6 + prand() * (park.maxZ - park.minZ - 12);
-      dummy.position.set(x, 1.4, z);
-      dummy.rotation.set(0, 0, 0);
-      dummy.scale.set(1, 1, 1);
+      // WS4: park trees vary in size (0.85–1.2x) instead of clones.
+      const ts = 0.85 + prand() * 0.35;
+      dummy.position.set(x, 1.4 * ts, z);
+      dummy.rotation.set(0, prand() * Math.PI * 2, 0);
+      dummy.scale.set(ts, ts, ts);
       dummy.updateMatrix();
       treeTrunkXf.push(dummy.matrix.clone());
-      dummy.position.set(x, 3.4, z);
+      dummy.position.set(x, 3.4 * ts, z);
       dummy.updateMatrix();
       treeTopXf.push(dummy.matrix.clone());
     }

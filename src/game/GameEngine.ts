@@ -2520,6 +2520,7 @@ export class GameEngine {
       this.cb.onDowned?.(true);
     }
     this.worldHandle.update(dt);
+    this.lighting?.update(dt);
     this.updateCamera(dt);
     // Shadow pass only when a moving caster moved: the player and
     // the car are the only dynamic casters, everything else is

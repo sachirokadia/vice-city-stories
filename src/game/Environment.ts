@@ -7,8 +7,9 @@
  */
 import * as THREE from 'three';
 import type { CityLayout } from './CityGenerator';
-import { CITY_HALF } from './CityGenerator';
+import { CITY_HALF, mulberry32 } from './CityGenerator';
 import type { Track } from './Buildings';
+import { GeometryBatch } from './Merge';
 
 function makeSandTexture(track: Track): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -96,6 +97,112 @@ export function buildEnvironment(
     posts.setMatrixAt(i, dummy.matrix);
   }
   group.add(posts);
+
+  // --- WS4: dunes, rocks, lifeguard tower ------------------------------
+  // Dunes: low ripples along the sand's west edge (near the boardwalk).
+  // Kept under 0.5 m tall so they read as dune texture, not walls.
+  const duneRand = mulberry32(20261123);
+  const duneXf: THREE.Matrix4[] = [];
+  for (let i = 0; i < 26; i++) {
+    const x = layout.beachStartX + 3 + duneRand() * 10;
+    const z = -CITY_HALF + 14 + duneRand() * (CITY_HALF * 2 - 28);
+    dummy.position.set(x, 0, z);
+    dummy.rotation.set(0, duneRand() * Math.PI, 0);
+    dummy.scale.set(2.2 + duneRand() * 2.4, 0.3 + duneRand() * 0.2, 1.6 + duneRand() * 1.6);
+    dummy.updateMatrix();
+    duneXf.push(dummy.matrix.clone());
+  }
+  if (duneXf.length > 0) {
+    const dunes = new THREE.InstancedMesh(
+      track(new THREE.SphereGeometry(1, 10, 6)),
+      track(new THREE.MeshStandardMaterial({ color: 0xd9c193, roughness: 1 })),
+      duneXf.length,
+    );
+    duneXf.forEach((m, i) => dunes.setMatrixAt(i, m));
+    dunes.receiveShadow = true;
+    group.add(dunes);
+  }
+  // Rocks: grey boulders at the waterline's north and south ends, plus
+  // a few scattered on the sand.
+  const rockXf: THREE.Matrix4[] = [];
+  for (let i = 0; i < 8; i++) {
+    const z = (i < 4 ? -1 : 1) * (CITY_HALF - 12 - duneRand() * 14);
+    const x = layout.waterStartX - 4 - duneRand() * 4;
+    const s = 0.5 + duneRand() * 0.9;
+    dummy.position.set(x, 0.2 * s, z);
+    dummy.rotation.set(duneRand() * Math.PI, duneRand() * Math.PI, 0);
+    dummy.scale.set(s, s * 0.7, s);
+    dummy.updateMatrix();
+    rockXf.push(dummy.matrix.clone());
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = layout.beachStartX + 8 + duneRand() * 44;
+    const z = -CITY_HALF + 20 + duneRand() * (CITY_HALF * 2 - 40);
+    const s = 0.35 + duneRand() * 0.5;
+    dummy.position.set(x, 0.15 * s, z);
+    dummy.rotation.set(0, duneRand() * Math.PI, 0);
+    dummy.scale.set(s, s * 0.65, s);
+    dummy.updateMatrix();
+    rockXf.push(dummy.matrix.clone());
+  }
+  if (rockXf.length > 0) {
+    const rocks = new THREE.InstancedMesh(
+      track(new THREE.IcosahedronGeometry(1, 0)),
+      track(new THREE.MeshStandardMaterial({ color: 0x8a8578, roughness: 1 })),
+      rockXf.length,
+    );
+    rockXf.forEach((m, i) => rocks.setMatrixAt(i, m));
+    rocks.castShadow = true;
+    rocks.receiveShadow = true;
+    group.add(rocks);
+  }
+  // Lifeguard tower: four splayed legs, a cabin and a red roof, on the
+  // sand south of the boardwalk mid (170, 60) — clear of the sprint
+  // start (133, 90), the beach-dune coin (165, 90) and the boardwalk
+  // coin (133, 30). No collision box (open sand, out of mission routes).
+  // Two merged meshes (white frame, red roof/flag) — 2 draw calls.
+  {
+    const white = track(new THREE.MeshStandardMaterial({ color: 0xf2ead8, roughness: 0.8 }));
+    const red = track(new THREE.MeshStandardMaterial({ color: 0xd63a2f, roughness: 0.7 }));
+    const whiteBatch = new GeometryBatch();
+    const redBatch = new GeometryBatch();
+    const legGeo = track(new THREE.BoxGeometry(0.22, 3.4, 0.22));
+    const cabinGeo = track(new THREE.BoxGeometry(2.4, 1.7, 2.2));
+    const roofGeo = track(new THREE.BoxGeometry(2.9, 0.18, 2.7));
+    const poleGeo = track(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 6));
+    const flagGeo = track(new THREE.PlaneGeometry(0.9, 0.55));
+    const t = new THREE.Object3D();
+    for (const [lx, lz] of [
+      [-0.9, -0.9],
+      [0.9, -0.9],
+      [-0.9, 0.9],
+      [0.9, 0.9],
+    ] as const) {
+      t.position.set(170 + lx * 1.15, 1.7, 60 + lz * 1.15);
+      t.rotation.set(lz * 0.12, 0, -lx * 0.12);
+      t.scale.set(1, 1, 1);
+      whiteBatch.addObject(legGeo, t);
+    }
+    t.position.set(170, 4.1, 60);
+    t.rotation.set(0, 0, 0);
+    whiteBatch.addObject(cabinGeo, t);
+    t.position.set(170, 5.6, 60);
+    whiteBatch.addObject(poleGeo, t);
+    t.position.set(170, 5.05, 60);
+    redBatch.addObject(roofGeo, t);
+    t.position.set(170.45, 5.9, 60);
+    redBatch.addObject(flagGeo, t);
+    for (const [batch, mat] of [
+      [whiteBatch, white],
+      [redBatch, red],
+    ] as const) {
+      const geo = batch.build();
+      if (!geo) continue;
+      const mesh = new THREE.Mesh(track(geo), mat);
+      mesh.castShadow = true;
+      group.add(mesh);
+    }
+  }
 
   // --- Ocean (animated shader) ------------------------------------------
   const uniforms = { uTime: { value: 0 } };
