@@ -19,8 +19,10 @@ BLOCKED until that happens.
 ## Shared setup
 
 **Build:** live production, https://vice-city-stories-sigma.vercel.app/
-(production commit `f199a42`, bundle `index-5UWogofC.js` — verify the bundle
-in the page source before starting; the old `index-jLcIAx51.js` must 404).
+(production commit `b68b7c1`, bundle `index-B9LExE1Q.js` — verify the bundle
+in the page source before starting; the old `index-5UWogofC.js` must 404).
+_Updated WS6: the WS5 text named the previous production build. The short
+player checklist is now `docs/ws6-natural-mission-completion.md`._
 
 **Starting state:** a fresh save (clear site data first, or use a fresh
 browser profile). Cash $0, no missions complete, Chapter 1, no story
