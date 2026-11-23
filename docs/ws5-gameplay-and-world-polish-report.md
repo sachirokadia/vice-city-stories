@@ -2,7 +2,7 @@
 
 **Branch:** `ui/gta-vice-city-transformation`
 **Starting commit:** `c1b53ae` (WS4 checkpoint; production `main` at `a1f0b4c`)
-**Final commit:** _to be filled after the checkpoint commit_
+**Final commit:** `742e3f6` (merge to main; checkpoint `156e151`)
 **Build:** `index-B9LExE1Q.js`, 1,198,811 B (WS4: 1,198,166 B — **+645 B**)
 **TypeScript:** clean (`npx tsc --noEmit`)
 **Date:** 2026-11-23
@@ -443,16 +443,81 @@ page, engine tier `high`, console `[]`.
 
 ## 16. Git push and merge details
 
-_TO BE FILLED after the WS5 checkpoint commit, push, merge and main push._
+- WS5 checkpoint commit: `156e151` — "WS5 gameplay & world polish:
+  hedges/rocks/dunes/podiums/clouds/shrubs/palms" — on branch
+  `ui/gta-vice-city-transformation`, 7 files changed, +775/−36.
+  The 7 older untracked reports stayed untracked (WS3/WS4 precedent).
+- Branch pushed to GitHub: remote `ui/gta-vice-city-transformation`
+  verified at `156e15174a5331b1e5ca9196a434c5979a939daf`.
+- Merge to `main`: `--no-ff`, commit `742e3f6` — "Merge WS5 gameplay &
+  world polish into main".
+- `main` pushed: remote HEAD verified at
+  `742e3f6ff04fc781656eedb672dc6cf67f12deb2` (was `a1f0b4c`).
+- No force-push, no history rewrite, no direct modification of
+  production.
 
 ## 17. Vercel deployment details
 
-_TO BE FILLED after deployment._
+- Push to `main` (`742e3f6`) triggered a Production deployment on
+  branch main, commit `742e3f6` — **status Ready** (verified via the
+  Vercel dashboard, 2026-11-23 ~20:49–20:51 IST).
+- Deployment ID: `DAvqUzF7vRDQxFkKeKp4MEuyvJUt` (Production, Current,
+  Latest), by sachirokadia. Created 23 Nov 2026 20:49:12 IST (build
+  started 20:49:08), duration 6 s. No waiting, no redeploy, no settings
+  changed.
+- Build log: "✓ 120 modules transformed", "✓ built in 871ms",
+  "Deployment completed" — 3 warnings only (chunk-size warning: the JS
+  chunk exceeds 500 kB after minification), no build errors. Output:
+  `dist/assets/index-B9LExE1Q.js` 1,198.81 kB │ gzip 327.01 kB,
+  `index-BkYvGFnQ.css`, `dist/index.html` 0.74 kB.
+- Domains: `vice-city-stories-sigma.vercel.app`,
+  `vice-city-stories-git-main-sachirokadia23-3354s-projects.vercel.app`,
+  `vice-city-stories-e6owswfpk-sachirokadia23-3354s-projects.vercel.app`.
+- Dashboard:
+  https://vercel.com/sachirokadia23-3354s-projects/vice-city-stories/DAvqUzF7vRDQxFkKeKp4MEuyvJUt
+- The previous production deployment (`f199a42`, WS4) is superseded.
 
 ## 18. Live production verification
 
-_TO BE FILLED after the live check._
+- Live site https://vice-city-stories-sigma.vercel.app/ verified in a
+  cloud browser (2026-11-23 ~20:49–20:51 IST):
+  - Loading screen ("Loading the city…", 15% → 100%) progressed
+    normally, no startup error, no blank screen.
+  - Main menu shows "VICE CITY — Stories · free roam" with PLAY,
+    Story, Missions, Settings and About; $0, Chapter 1, "0/10",
+    progress "0%".
+  - PLAY enters the 3D world: sunset sky, buildings, roads, vehicles,
+    trees, player character; full HUD — Cash $0 (top), Health 100
+    (bottom right), minimap (bottom left), weapon "Palm 9, 12/60",
+    mission panel "BEACON RUN — Find the mission marker, Objective
+    1/5, From Mara Voss, reward $500".
+  - **New bundle served: `index-B9LExE1Q.js`** — confirmed in the
+    deployment build log and by requesting
+    `/assets/index-B9LExE1Q.js` directly (returns the JavaScript).
+  - **Old bundle gone:** `/assets/index-5UWogofC.js` returns Vercel
+    "404: NOT_FOUND".
+  - No startup errors observed; no error overlay. Method note: the
+    browser's DevTools console could not be opened in that session, so
+    this rests on the successful load and rendering rather than a
+    console transcript — the headless harness runs (§12–§13) recorded
+    console `[]` on the same build.
+  - One observation, not a failure: in-game FPS read 1–6 with the
+    quality label "Low — battery saver (manual)" — the known cloud-
+    browser rendering artifact (same as WS4); the world, HUD and
+    controls all worked.
 
 ## 19. Final commit
 
-_TO BE FILLED._
+**Final commit:** `742e3f6` — "Merge WS5 gameplay & world polish into
+main" (checkpoint `156e151` on `ui/gta-vice-city-transformation`).
+
+- Production is now `742e3f6` at
+  https://vice-city-stories-sigma.vercel.app/, serving
+  `index-B9LExE1Q.js`.
+- Report update: §12–§13 (qa81, regression, mobile) and §16–§19 were
+  added after the deploy; committed as a docs-only follow-up on main
+  (does not change the deployed bundle — the production code remains
+  `742e3f6`, bundle `index-B9LExE1Q.js`).
+- Working tree after release: clean except the 7 older untracked report
+  docs (WS1/3.2/Next Phase/sprint/WS1-final/WS1-natural/WS2), which
+  were deliberately not committed.
