@@ -19,6 +19,7 @@
  */
 import * as THREE from 'three';
 import { GeometryBatch, composeMatrix } from './Merge';
+import type { CharacterDesign } from './CharacterDesign';
 
 export interface CharacterRig {
   root: THREE.Group;
@@ -62,7 +63,16 @@ export interface CharacterParts {
   chain: THREE.Mesh;
 }
 
-export function createCharacter(track: Track): {
+/**
+ * Build the character. `design` is optional and defaults to the
+ * original build (Phase 1): every proportion, hair, clothing and
+ * accessory choice falls back to Kai's geometry, so existing
+ * callers that pass no design get the identical character.
+ */
+export function createCharacter(
+  track: Track,
+  design: CharacterDesign = {},
+): {
   group: THREE.Group;
   rig: CharacterRig;
   mats: CharacterMaterials;
@@ -104,14 +114,32 @@ export function createCharacter(track: Track): {
     return m;
   };
 
+  // --- Proportions (Phase 1): the design narrows the torso and
+  // hips by parameterising box widths and pivot positions, never
+  // by scaling a group — the head stays undistorted and the rig
+  // pivots stay where the animation expects them.
+  const shoulderScale = design.shoulderScale ?? 1;
+  const hipScale = design.hipScale ?? 1;
+  if (design.heightScale !== undefined && design.heightScale !== 1) {
+    root.scale.setScalar(design.heightScale);
+  }
+
   // --- Pelvis (trousers) ---
-  add(body, track(new THREE.BoxGeometry(0.36, 0.2, 0.22)), thighMat, 0, 0.95, 0);
+  const pelvis = add(body, track(new THREE.BoxGeometry(0.36 * hipScale, 0.2, 0.22)), thighMat, 0, 0.95, 0);
+
+  // Skirt (Phase 1): a flared cone over the pelvis, in the
+  // trousers colour; the pelvis block hides underneath it and
+  // the legs below read as tights in the same colour.
+  if (design.skirt) {
+    pelvis.visible = false;
+    add(body, track(new THREE.CylinderGeometry(0.21, 0.27, 0.32, 12)), thighMat, 0, 0.82, 0);
+  }
 
   // --- Legs: hip pivot -> thigh, knee pivot -> shin + shoe + sole ---
   const makeLeg = (side: number): { hip: THREE.Group; knee: THREE.Group } => {
     const hip = new THREE.Group();
     hip.name = side < 0 ? 'legL' : 'legR';
-    hip.position.set(side * 0.11, 0.95, 0);
+    hip.position.set(side * 0.11 * hipScale, 0.95, 0);
     body.add(hip);
     add(hip, track(new THREE.CapsuleGeometry(0.085, 0.3, 4, 10)), thighMat, 0, -0.22, 0);
     const knee = new THREE.Group();
@@ -134,14 +162,15 @@ export function createCharacter(track: Track): {
   // Two stacked boxes: wider chest, narrower waist — a jacket
   // with a shape, not one slab. (A four-sided cylinder was tried:
   // its diamond cross-section left the tee panel floating.)
-  add(torso, track(new THREE.BoxGeometry(0.42, 0.34, 0.24)), hoodieMat, 0, 0.4, 0);
-  add(torso, track(new THREE.BoxGeometry(0.38, 0.26, 0.22)), hoodieMat, 0, 0.13, 0);
-  add(torso, track(new THREE.BoxGeometry(0.2, 0.34, 0.03)), teeMat, 0, 0.32, 0.135, false);
+  add(torso, track(new THREE.BoxGeometry(0.42 * shoulderScale, 0.34, 0.24)), hoodieMat, 0, 0.4, 0);
+  add(torso, track(new THREE.BoxGeometry(0.38 * shoulderScale, 0.26, 0.22)), hoodieMat, 0, 0.13, 0);
+  add(torso, track(new THREE.BoxGeometry(0.2 * shoulderScale, 0.34, 0.03)), teeMat, 0, 0.32, 0.135, false);
   const hood = add(torso, track(new THREE.SphereGeometry(0.14, 12, 8)), hoodieMat, 0, 0.56, -0.06);
   hood.scale.set(1.3, 0.55, 0.9);
+  if (design.hood === false) hood.visible = false;
   add(torso, track(new THREE.CylinderGeometry(0.055, 0.06, 0.1, 10)), skin, 0, 0.6, 0, false);
   // Waistband: breaks the jacket/trousers junction.
-  add(torso, track(new THREE.BoxGeometry(0.38, 0.05, 0.24)), thighMat, 0, 0.0, 0, false);
+  add(torso, track(new THREE.BoxGeometry(0.38 * shoulderScale, 0.05, 0.24)), thighMat, 0, 0.0, 0, false);
   const chain = add(
     torso,
     track(new THREE.TorusGeometry(0.11, 0.015, 8, 20)),
@@ -152,6 +181,7 @@ export function createCharacter(track: Track): {
     false,
   );
   chain.rotation.x = Math.PI / 2 - 0.35;
+  if (design.chain === false) chain.visible = false;
 
   // --- Head: sphere, hair cap, merged face parts ---
   const head = new THREE.Group();
@@ -160,7 +190,35 @@ export function createCharacter(track: Track): {
   torso.add(head);
   add(head, track(new THREE.SphereGeometry(0.14, 20, 16)), skin, 0, 0.06, 0);
   const hair = add(head, track(new THREE.SphereGeometry(0.145, 16, 12)), hairMat, 0, 0.11, -0.02);
-  hair.scale.set(1.02, 0.8, 1.02);
+  const hairStyle = design.hairStyle ?? 'short';
+  if (hairStyle === 'bob') {
+    // Chin-length bob: a wider, fuller cap with side panels.
+    hair.scale.set(1.18, 0.95, 1.12);
+    for (const s of [-1, 1]) {
+      add(head, track(new THREE.BoxGeometry(0.05, 0.16, 0.06)), hairMat, s * 0.11, -0.02, 0.02);
+    }
+  } else {
+    hair.scale.set(1.02, 0.8, 1.02);
+  }
+  if (hairStyle === 'long') {
+    // Long hair: a back panel to mid-back (on the torso, so it
+    // stays put when the head turns) plus two front strands.
+    add(torso, track(new THREE.BoxGeometry(0.17, 0.5, 0.05)), hairMat, 0, 0.42, -0.14);
+    for (const s of [-1, 1]) {
+      add(head, track(new THREE.BoxGeometry(0.04, 0.24, 0.04)), hairMat, s * 0.11, -0.07, 0.08);
+    }
+  } else if (hairStyle === 'bun') {
+    // A bun at the back-top of the head.
+    add(head, track(new THREE.SphereGeometry(0.07, 10, 8)), hairMat, 0, 0.16, -0.1);
+  } else if (hairStyle === 'shoulder') {
+    // Shoulder-length: a back panel to the shoulders (on the
+    // torso, so it stays put when the head turns) plus shorter
+    // front strands — between the bob and the long style.
+    add(torso, track(new THREE.BoxGeometry(0.17, 0.32, 0.05)), hairMat, 0, 0.48, -0.14);
+    for (const s of [-1, 1]) {
+      add(head, track(new THREE.BoxGeometry(0.04, 0.18, 0.04)), hairMat, s * 0.11, -0.05, 0.08);
+    }
+  }
 
   // Face parts are static relative to the head, so merge them per
   // material: two draw calls instead of seven.
@@ -201,11 +259,24 @@ export function createCharacter(track: Track): {
     head.add(new THREE.Mesh(track(geo), mat));
   }
 
+  // Accessories (Phase 1): gold hoops and shades, from the design.
+  if (design.hoops) {
+    for (const s of [-1, 1]) {
+      add(head, track(new THREE.TorusGeometry(0.028, 0.007, 8, 16)), goldMat, s * 0.135, 0.02, 0, false);
+    }
+  }
+  if (design.sunglasses) {
+    const shadesMat = track(
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0f, roughness: 0.15, metalness: 0.4 }),
+    );
+    add(head, track(new THREE.BoxGeometry(0.17, 0.05, 0.03)), shadesMat, 0, 0.075, 0.125, false);
+  }
+
   // --- Arms: shoulder pivot -> upper arm, elbow pivot -> forearm + hand ---
   const makeArm = (side: number): { shoulder: THREE.Group; elbow: THREE.Group } => {
     const shoulder = new THREE.Group();
     shoulder.name = side < 0 ? 'armL' : 'armR';
-    shoulder.position.set(side * 0.27, 0.48, 0);
+    shoulder.position.set(side * 0.27 * shoulderScale, 0.48, 0);
     torso.add(shoulder);
     add(shoulder, track(new THREE.CapsuleGeometry(0.06, 0.2, 4, 10)), hoodieMat, 0, -0.16, 0);
     const elbow = new THREE.Group();

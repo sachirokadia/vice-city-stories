@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { EncounterState } from '../game/Encounters';
+import { VcIcon } from './ui/VcIcon';
 
 interface EncounterHUDProps {
   encounters: EncounterState[];
@@ -50,7 +51,7 @@ export default function EncounterHUD({ encounters }: EncounterHUDProps) {
     <div className="encounter-hud" aria-live="polite">
       {active && (
         <div className="encounter-banner" role="status">
-          <span className="encounter-warning">⚠</span>
+          <VcIcon name="warning" size={16} className="encounter-warning" />
           <span className="encounter-name">{active.name.toUpperCase()}</span>
           <span className="encounter-count">
             {active.remaining} {active.remaining === 1 ? 'hostile' : 'hostiles'} left

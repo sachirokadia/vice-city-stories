@@ -35,6 +35,16 @@ import CollectionPanel from './CollectionPanel';
 import SprintHUD from './SprintHUD';
 import CombatHUD from './CombatHUD';
 import RangePanel from './RangePanel';
+import Minimap from './Minimap';
+import FullMap from './FullMap';
+import StatisticsPanel, { buildStatsSnapshot } from './StatisticsPanel';
+import type { StatsSnapshot } from './StatisticsPanel';
+import PauseHub from './PauseHub';
+import type { SettingsSection } from './SettingsPanel';
+import Toast, { type ToastData, type ToastTone } from './Toast';
+import { getWeapon } from '../game/Weapons';
+import { PAINT_PRICE } from '../game/GarageProgress';
+import { VcIcon } from './ui/VcIcon';
 import type { MissionBoardState, MissionHudState } from '../game/MissionTypes';
 import type { GarageUiState, UpgradeKind } from '../game/GarageProgress';
 import type { CollectibleState } from '../game/Collectibles';
@@ -103,9 +113,62 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   const [combat, setCombat] = useState<CombatHudState | null>(null);
   const [range, setRange] = useState<RangeUiState | null>(null);
   const [showRange, setShowRange] = useState(false);
+  // Group 2 (WS3): full map + statistics + the Pause Hub's
+  // return-to-hub flag. `returnToHub` is true only while a panel
+  // opened FROM the hub is up; closing such a panel returns to the
+  // hub instead of resuming. It is never true while the hub itself
+  // is visible.
+  const [showMap, setShowMap] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [stats, setStats] = useState<StatsSnapshot | null>(null);
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('Graphics');
+  const [returnToHub, setReturnToHub] = useState(false);
   const [downed, setDowned] = useState(false);
   const [encounters, setEncounters] = useState<EncounterState[]>([]);
   const [contracts, setContracts] = useState<ContractState[]>([]);
+  // Persistent cash for the top-right HUD. No engine callback fires
+  // on every cash change (shop / garage / sprint / contract rewards
+  // all go through different paths), so the HUD polls the engine's
+  // own getStats() once a second and only re-renders when the value
+  // actually changes — this is not a per-frame update.
+  const [cash, setCash] = useState(0);
+
+  // Shared toast (Lovable Group 1): transient feedback for real game
+  // outcomes only — purchase success / insufficient funds, wanted
+  // level up, collectible found. The timer lives in a ref so a
+  // re-render never resets the countdown; a new toast replaces the
+  // old one and restarts it.
+  const [toast, setToast] = useState<ToastData | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const notify = (message: string, tone: ToastTone) => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    setToast({ message, tone });
+    toastTimer.current = window.setTimeout(() => setToast(null), 3400);
+  };
+  // Previous wanted level / coin count, so the toast fires only on a
+  // real increase (not on every ~10Hz wanted update or re-render).
+  const prevWantedLevel = useRef(0);
+  const prevCoinsFound = useRef(0);
+  useEffect(() => {
+    if (wanted.level > prevWantedLevel.current) {
+      notify(
+        wanted.level >= 3
+          ? `Wanted level ${wanted.level} — the whole force is after you.`
+          : `Wanted level ${wanted.level} — the police are on your tail.`,
+        'danger',
+      );
+    }
+    prevWantedLevel.current = wanted.level;
+  }, [wanted.level]);
+  useEffect(() => {
+    if (drive.collectibles.found > prevCoinsFound.current) {
+      notify(
+        `Sun Coin found — ${drive.collectibles.found} of ${drive.collectibles.total}.`,
+        'success',
+      );
+    }
+    prevCoinsFound.current = drive.collectibles.found;
+  }, [drive.collectibles.found, drive.collectibles.total]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -172,6 +235,22 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Persistent cash for the top-right HUD (see the `cash` state
+  // above): poll once a second, re-render only when it changes.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const engine = engineRef.current;
+      if (!engine) return;
+      try {
+        const next = engine.getStats().cash;
+        setCash((prev) => (prev === next ? prev : next));
+      } catch {
+        /* engine is mid-dispose — the next tick retries */
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
   // Live-apply settings that can change mid-session.
   useEffect(() => {
     engineRef.current?.setShadows(settings.shadows);
@@ -212,12 +291,51 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (paused) {
       engine.start();
       setPaused(false);
+      setReturnToHub(false);
       setShowSettings(false);
       setShowBoard(false);
+      setShowStoryBoard(false);
+      setShowGarage(false);
+      setShowShop(false);
+      setShowOutfits(false);
+      setShowCollection(false);
+      setShowRange(false);
+      setShowMap(false);
+      setShowStats(false);
     } else {
       engine.stop();
       setPaused(true);
     }
+  };
+
+  /**
+   * Close a panel. When it was opened from the Pause Hub, hide it and
+   * return to the hub (engine stays stopped, paused stays true);
+   * otherwise resume the game exactly as before. Every panel closer
+   * below goes through this — the hub contract in one place.
+   */
+  const closeToHubOrResume = (hide: () => void) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (returnToHub) {
+      hide();
+      setReturnToHub(false);
+    } else {
+      engine.start();
+      setPaused(false);
+      hide();
+    }
+  };
+
+  /** Picking a mission from a board always resumes play (and clears
+   *  the hub flag), even when the board was opened from the hub. */
+  const resumeFromPanel = (hide: () => void) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.start();
+    setPaused(false);
+    setReturnToHub(false);
+    hide();
   };
 
   /** Open the mission board: the engine pauses while it is up. */
@@ -231,18 +349,14 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeBoard = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowBoard(false);
+    closeToHubOrResume(() => setShowBoard(false));
   };
 
   const selectFromBoard = (id: string) => {
     const engine = engineRef.current;
     if (!engine) return;
     if (engine.selectMission(id)) {
-      closeBoard();
+      resumeFromPanel(() => setShowBoard(false));
     } else {
       setBoard(engine.getMissionBoard());
     }
@@ -273,18 +387,14 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeStoryBoard = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowStoryBoard(false);
+    closeToHubOrResume(() => setShowStoryBoard(false));
   };
 
   const selectStoryFromBoard = (id: string) => {
     const engine = engineRef.current;
     if (!engine) return;
     if (engine.selectStoryMission(id)) {
-      closeStoryBoard();
+      resumeFromPanel(() => setShowStoryBoard(false));
     } else {
       setStoryBoard(engine.getStoryBoard());
     }
@@ -301,11 +411,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeGarage = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowGarage(false);
+    closeToHubOrResume(() => setShowGarage(false));
   };
 
   /** Garage actions: the engine owns the cash and the save; the
@@ -319,6 +425,15 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.garageBuy(id);
     refreshGarage();
+    if (res.ok) {
+      const spec = garage?.vehicles.find((v) => v.spec.id === id)?.spec;
+      notify(
+        spec ? `${spec.name} acquired — $${spec.price.toLocaleString('en-US')}` : 'Vehicle acquired',
+        'success',
+      );
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this vehicle.', 'amber');
+    }
     return res;
   };
   const garageSelect = (id: string) => {
@@ -333,6 +448,11 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.garagePaint(id, hex);
     refreshGarage();
+    if (res.ok) {
+      notify(`Paint applied — $${PAINT_PRICE}`, 'success');
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for paint.', 'amber');
+    }
     return res;
   };
   const garageUpgrade = (id: string, kind: UpgradeKind) => {
@@ -340,6 +460,12 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.garageUpgrade(id, kind);
     refreshGarage();
+    if (res.ok) {
+      const name = garage?.vehicles.find((v) => v.spec.id === id)?.spec.name ?? 'Vehicle';
+      notify(`${name} upgraded`, 'success');
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this upgrade.', 'amber');
+    }
     return res;
   };
 
@@ -354,11 +480,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeShop = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowShop(false);
+    closeToHubOrResume(() => setShowShop(false));
   };
 
   const refreshShop = () => {
@@ -370,6 +492,15 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.shopBuy(id);
     refreshShop();
+    if (res.ok) {
+      const item = shop?.items.find((i) => i.id === id);
+      notify(
+        item ? `${item.name} purchased — $${item.price}` : 'Item purchased',
+        'success',
+      );
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this item.', 'amber');
+    }
     return res;
   };
 
@@ -384,11 +515,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeOutfits = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowOutfits(false);
+    closeToHubOrResume(() => setShowOutfits(false));
   };
 
   const refreshOutfits = () => {
@@ -400,6 +527,15 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.outfitBuy(id);
     refreshOutfits();
+    if (res.ok) {
+      const def = outfits?.outfits.find((o) => o.def.id === id)?.def;
+      notify(
+        def ? `${def.name} outfit unlocked — $${def.price}` : 'Outfit unlocked',
+        'success',
+      );
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this outfit.', 'amber');
+    }
     return res;
   };
   const outfitSelect = (id: string) => {
@@ -431,11 +567,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeRange = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowRange(false);
+    closeToHubOrResume(() => setShowRange(false));
   };
 
   const refreshRange = () => {
@@ -447,6 +579,15 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (!engine) return { ok: false, reason: 'unavailable' };
     const res = engine.rangeBuyWeapon(id);
     refreshRange();
+    if (res.ok) {
+      const def = getWeapon(id);
+      notify(
+        def ? `${def.name} acquired — $${def.price.toLocaleString('en-US')}` : 'Weapon acquired',
+        'success',
+      );
+    } else if (res.reason === 'insufficient') {
+      notify('Insufficient funds for this weapon.', 'amber');
+    }
     return res;
   };
   const rangeEquip = (id: string) => {
@@ -464,11 +605,86 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeCollection = () => {
+    closeToHubOrResume(() => setShowCollection(false));
+  };
+
+  /** Open the full city map: the engine pauses while it is up. */
+  const openMap = () => {
     const engine = engineRef.current;
     if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowCollection(false);
+    engine.stop();
+    setPaused(true);
+    setShowMap(true);
+  };
+
+  const closeMap = () => {
+    closeToHubOrResume(() => setShowMap(false));
+  };
+
+  /** Open statistics: snapshot the real values from the engine. */
+  const openStats = () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.stop();
+    setPaused(true);
+    setStats(buildStatsSnapshot(engine));
+    setShowStats(true);
+  };
+
+  const closeStats = () => {
+    closeToHubOrResume(() => setShowStats(false));
+  };
+
+  /** Statistics → mission board. The board opens with the hub flag
+   *  still set (statistics only opens from the hub), so closing the
+   *  board returns to the hub, not to statistics. */
+  const viewJobsFromStats = () => {
+    setShowStats(false);
+    openBoard();
+  };
+
+  /** Open settings on a given tab. The game is already paused when
+   *  this is called (from the hub), so no engine stop is needed. */
+  const openSettings = (section: SettingsSection) => {
+    setSettingsSection(section);
+    setShowSettings(true);
+  };
+
+  /** Closing settings drops back onto the hub (or resumes, if it was
+   *  somehow opened without the hub) and clears the hub flag. */
+  const closeSettings = () => {
+    setShowSettings(false);
+    setReturnToHub(false);
+  };
+
+  /** Hub openers: same panel, but the close returns to the hub. */
+  const openBoardFromHub = () => {
+    setReturnToHub(true);
+    openBoard();
+  };
+  const openStoryBoardFromHub = () => {
+    setReturnToHub(true);
+    openStoryBoard();
+  };
+  const openGarageFromHub = () => {
+    setReturnToHub(true);
+    openGarage();
+  };
+  const openOutfitsFromHub = () => {
+    setReturnToHub(true);
+    openOutfits();
+  };
+  const openMapFromHub = () => {
+    setReturnToHub(true);
+    openMap();
+  };
+  const openStatsFromHub = () => {
+    setReturnToHub(true);
+    openStats();
+  };
+  const openSettingsFromHub = (section: SettingsSection) => {
+    setReturnToHub(true);
+    openSettings(section);
   };
 
   const quit = () => {
@@ -487,6 +703,43 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   // and quitting to the menu stays available as the escape
   // hatch (engine dispose cleans the scene up silently).
   const hudHidden = paused || cinematic !== null;
+
+  // The Pause Hub is visible exactly when the game is paused and no
+  // panel, dialogue, cinematic or downed screen is in front of it.
+  // (This is the same condition the old pause overlay used, extended
+  // with the two new Group 2 screens.)
+  const hubOpen =
+    paused &&
+    !downed &&
+    !dialogue &&
+    !cinematic &&
+    !showSettings &&
+    !showBoard &&
+    !showStoryBoard &&
+    !showGarage &&
+    !showShop &&
+    !showOutfits &&
+    !showCollection &&
+    !showRange &&
+    !showMap &&
+    !showStats;
+
+  // Escape resumes, but ONLY from the hub — never while a panel,
+  // dialogue or cinematic is open (those own their own keys).
+  useEffect(() => {
+    if (!hubOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        togglePause();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // togglePause is safe here: hubOpen true implies paused true at
+    // this render, so its resume branch is the one that runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hubOpen]);
 
   return (
     <div className="game-screen">
@@ -519,57 +772,74 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
               <span>Stories · free roam</span>
             </div>
             <div className="hud-stats">
-              {settings.showFps && <span className="hud-chip">{fps} FPS</span>}
-              {quality && <span className="hud-chip">{quality.label}</span>}
+              <span className="hud-chip hud-cash" aria-label={`Cash $${cash}`}>
+                <VcIcon name="cash" size={14} />
+                <span className="hud-cash-num">${cash.toLocaleString('en-US')}</span>
+              </span>
+              {wanted.level > 0 && (
+                <span className="hud-wanted" aria-label={`Wanted level ${wanted.level}`}>
+                  <span className="hud-wanted-stars" aria-hidden="true">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <VcIcon
+                        key={s}
+                        name="star"
+                        size={14}
+                        className={s <= wanted.level ? 'hud-wanted-star on' : 'hud-wanted-star'}
+                      />
+                    ))}
+                  </span>
+                  <span className="hud-wanted-status">
+                    {wanted.status === 'pursuit' ? 'PURSUIT' : 'SEARCHING'}
+                  </span>
+                  {wanted.status === 'search' && (
+                    <span className="hud-wanted-escape" aria-label="Escape progress">
+                      <span
+                        className="hud-wanted-escape-fill"
+                        style={{ width: `${Math.round(wanted.escapeProgress * 100)}%` }}
+                      />
+                    </span>
+                  )}
+                </span>
+              )}
+              {settings.showFps && <span className="hud-chip hud-sys">{fps} FPS</span>}
+              {quality && <span className="hud-chip hud-sys">{quality.label}</span>}
               <button
                 type="button"
-                className="hud-chip collectibles-chip"
+                className="hud-chip hud-coins"
                 onClick={openCollection}
                 aria-label={`Sunset Coins: ${drive.collectibles.found} of ${drive.collectibles.total} found`}
                 title="Sunset Coins — open your collection"
               >
-                🪙 {drive.collectibles.found}/{drive.collectibles.total}
+                <VcIcon name="coin" size={14} />
+                <span>
+                  {drive.collectibles.found}/{drive.collectibles.total}
+                </span>
               </button>
               {!hudHidden && (
                 <>
                   <button type="button" className="hud-button" onClick={openBoard} aria-label="Mission board">
-                    ☰ Missions
+                    <VcIcon name="missions" size={15} />
+                    <span>Missions</span>
                   </button>
                   <button type="button" className="hud-button" onClick={openStoryBoard} aria-label="Story board">
-                    📖 Story
+                    <VcIcon name="story" size={15} />
+                    <span>Story</span>
                   </button>
                   <button type="button" className="hud-button" onClick={openOutfits} aria-label="Outfits">
-                    👕 Outfits
+                    <VcIcon name="outfits" size={15} />
+                    <span>Outfits</span>
+                  </button>
+                  <button type="button" className="hud-button" onClick={openMap} aria-label="City map">
+                    <VcIcon name="map" size={15} />
+                    <span>Map</span>
                   </button>
                   <button type="button" className="hud-button" onClick={togglePause} aria-label="Pause game">
-                    II Pause
+                    <VcIcon name="pause" size={15} />
+                    <span>Pause</span>
                   </button>
                 </>
               )}
             </div>
-            </div>
-          )}
-
-          {wanted.level > 0 && !hudHidden && (
-            <div className="wanted-hud" aria-label={`Wanted level ${wanted.level}`}>
-              <div className="wanted-stars" aria-hidden="true">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <span key={s} className={s <= wanted.level ? 'wanted-star on' : 'wanted-star'}>
-                    ★
-                  </span>
-                ))}
-              </div>
-              <div className="wanted-status">
-                {wanted.status === 'pursuit' ? 'POLICE PURSUIT' : 'SEARCHING — STAY HIDDEN'}
-              </div>
-              {wanted.status === 'search' && (
-                <div className="wanted-escape" aria-label="Escape progress">
-                  <div
-                    className="wanted-escape-fill"
-                    style={{ width: `${Math.round(wanted.escapeProgress * 100)}%` }}
-                  />
-                </div>
-              )}
             </div>
           )}
 
@@ -579,6 +849,10 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
 
           {story && !hudHidden && (
             <StoryHUD story={story} onAbandon={() => engineRef.current?.cancelStoryMission()} />
+          )}
+
+          {!hudHidden && (
+            <Minimap engineRef={engineRef} quality={quality} />
           )}
 
           <div className="hud hud-bottom">
@@ -592,7 +866,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   : 'WASD to move · drag to look · left-click to fire · R reload · Q switch · Shift to sprint'}
             </p>
             <button type="button" className="hud-button hud-quit" onClick={quit}>
-              ✕ Menu
+              <VcIcon name="close" size={14} />
+              <span>Menu</span>
             </button>
           </div>
 
@@ -633,7 +908,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   aria-label="Switch weapon"
                   onClick={() => engineRef.current?.cycleCombatWeapon?.()}
                 >
-                  ⇄
+                  <VcIcon name="switch" size={22} />
                 </button>
                 <button
                   type="button"
@@ -641,7 +916,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   aria-label="Reload weapon"
                   onClick={() => engineRef.current?.reloadCombatWeapon?.()}
                 >
-                  ⟳
+                  <VcIcon name="reload" size={22} />
                 </button>
                 <button
                   type="button"
@@ -673,7 +948,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   className="enter-button"
                   onClick={() => engineRef.current?.tryInteract()}
                 >
-                  ▲&nbsp; Enter {drive.vehicleName}
+                  <VcIcon name="arrow" size={15} />
+                  <span>Enter {drive.vehicleName}</span>
                 </button>
               ) : (
                 <span>
@@ -691,7 +967,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   className="surrender-button"
                   onClick={() => engineRef.current?.trySurrender()}
                 >
-                  ✋&nbsp; Surrender
+                  <VcIcon name="pause" size={15} />
+                  <span>Surrender</span>
                 </button>
               ) : (
                 <span>
@@ -719,7 +996,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   className="garage-enter-button"
                   onClick={() => engineRef.current?.tryGarageEnter()}
                 >
-                  🔧&nbsp; Enter Sunset Garage
+                  <VcIcon name="settings" size={15} />
+                  <span>Enter Sunset Garage</span>
                 </button>
               ) : (
                 <span>
@@ -741,7 +1019,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                     className="mission-start-button"
                     onClick={() => engineRef.current?.tryMissionInteract()}
                   >
-                    ▶&nbsp; Start {mission.title}
+                    <VcIcon name="play" size={15} />
+                    <span>Start {mission.title}</span>
                   </button>
                 ) : (
                   <span>
@@ -763,7 +1042,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                     className="mission-start-button"
                     onClick={() => engineRef.current?.tryStoryInteract()}
                   >
-                    ▶&nbsp; {story.promptLabel ?? `Start ${story.title}`}
+                    <VcIcon name="play" size={15} />
+                    <span>{story.promptLabel ?? `Start ${story.title}`}</span>
                   </button>
                 ) : (
                   <span>
@@ -790,7 +1070,8 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                     className="interact-button"
                     onClick={() => engineRef.current?.tryInteractable()}
                   >
-                    ◆&nbsp; {drive.nearInteractable.prompt}
+                    <VcIcon name="chevron-right" size={15} />
+                    <span>{drive.nearInteractable.prompt}</span>
                   </button>
                 ) : (
                   <span>
@@ -873,11 +1154,31 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
 
           {drive.mode === 'drive' && !hudHidden && (
             <div className="drive-hud" aria-label="Vehicle dashboard">
-              <div className="drive-name">{drive.vehicleName}</div>
+              <div className="drive-name">
+                <VcIcon name="car" size={15} />
+                <span>{drive.vehicleName}</span>
+              </div>
               <div className="speedo">
                 <span className="speedo-value">{drive.speedKmh}</span>
                 <span className="speedo-unit">km/h</span>
                 <span className="speedo-gear">{drive.gear}</span>
+              </div>
+              {/* Speed bar (Lovable vehicle HUD): speed as a fraction
+                  of a 200 km/h display scale — the fastest car in the
+                  game tops out at 178 km/h fully upgraded, so the bar
+                  never saturates. A display scale, not a game stat. */}
+              <div
+                className="speedo-bar"
+                role="progressbar"
+                aria-label={`Speed ${drive.speedKmh} kilometres per hour`}
+                aria-valuenow={drive.speedKmh}
+                aria-valuemin={0}
+                aria-valuemax={200}
+              >
+                <div
+                  className="speedo-bar-fill"
+                  style={{ width: `${Math.min(100, Math.round((drive.speedKmh / 200) * 100))}%` }}
+                />
               </div>
               {!IS_TOUCH && (
                 <button
@@ -958,29 +1259,42 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
             />
           )}
 
-          {paused && !downed && !dialogue && !cinematic && !showSettings && !showBoard && !showStoryBoard && !showGarage && !showShop && !showOutfits && !showCollection && !showRange && (
-            <div className="pause-overlay" role="dialog" aria-label="Paused">
-              <h2>Paused</h2>
-              <p>The city waits for you.</p>
-              <button type="button" className="play-button" onClick={togglePause}>
-                ▶&nbsp; Resume
-              </button>
-              <button type="button" className="hud-button pause-quit" onClick={() => setShowSettings(true)}>
-                ⚙ Settings
-              </button>
-              <button type="button" className="hud-button pause-quit" onClick={quit}>
-                Quit to menu
-              </button>
-            </div>
+          {hubOpen && (
+            <PauseHub
+              onResume={togglePause}
+              onMissions={openBoardFromHub}
+              onStory={openStoryBoardFromHub}
+              onGarage={openGarageFromHub}
+              onOutfits={openOutfitsFromHub}
+              onSettings={() => openSettingsFromHub('Graphics')}
+              onControls={() => openSettingsFromHub('Controls')}
+              onMap={openMapFromHub}
+              onStats={openStatsFromHub}
+              onQuit={quit}
+            />
+          )}
+
+          {showMap && (
+            <FullMap engineRef={engineRef} quality={quality} onBack={closeMap} />
+          )}
+
+          {showStats && stats && (
+            <StatisticsPanel stats={stats} onViewJobs={viewJobsFromStats} onClose={closeStats} />
           )}
 
           {paused && showSettings && (
             <SettingsPanel
               settings={settings}
               onChange={onSettingsChange}
-              onClose={() => setShowSettings(false)}
+              onClose={closeSettings}
+              initialSection={settingsSection}
             />
           )}
+
+          {/* Shared toast: renders outside the hudHidden gate so a
+              purchase or wanted toast is visible while a panel is
+              open; pointer-events none, auto-dismisses. */}
+          <Toast toast={toast} />
         </>
       )}
     </div>

@@ -7,6 +7,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { ContractState } from '../game/Contracts';
+import { VcIcon } from './ui/VcIcon';
 
 interface ContractHUDProps {
   contracts: ContractState[];
@@ -95,7 +96,8 @@ export default function ContractHUD({ contracts, onAbandon }: ContractHUDProps) 
             </div>
           )}
           <button type="button" className="contract-abandon" onClick={onAbandon}>
-            Abandon contract
+            <VcIcon name="close" size={13} />
+            <span>Abandon contract</span>
           </button>
         </div>
       )}

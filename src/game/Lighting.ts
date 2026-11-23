@@ -6,6 +6,7 @@
  */
 import * as THREE from 'three';
 import type { QualitySettings } from './Quality';
+import { mulberry32 } from './CityGenerator';
 
 export interface LightingHandle {
   sun: THREE.DirectionalLight;
@@ -13,7 +14,55 @@ export interface LightingHandle {
   /** Sky-only scene (dome + sun disc) for the PMREM environment map. */
   environmentScene: THREE.Scene;
   setShadows: (enabled: boolean) => void;
+  /** Advance the drifting clouds (no-op when there are none). */
+  update: (dt: number) => void;
   dispose: () => void;
+}
+
+function makeCloudTexture(track: <T extends { dispose(): void }>(r: T) => T): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 128;
+  const ctx = c.getContext('2d')!;
+  ctx.clearRect(0, 0, 256, 128);
+  // A cluster of soft white blobs — one puffy cloud per texture.
+  const blobs: Array<[number, number, number]> = [
+    [128, 78, 52],
+    [88, 84, 38],
+    [168, 84, 40],
+    [60, 92, 28],
+    [198, 92, 30],
+    [128, 58, 30],
+  ];
+  for (const [x, y, r] of blobs) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, 'rgba(255, 236, 220, 0.85)');
+    g.addColorStop(0.7, 'rgba(255, 220, 200, 0.4)');
+    g.addColorStop(1, 'rgba(255, 220, 200, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const tex = track(new THREE.CanvasTexture(c));
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function makeGlowTexture(track: <T extends { dispose(): void }>(r: T) => T): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255, 223, 138, 0.9)');
+  g.addColorStop(0.35, 'rgba(255, 180, 110, 0.45)');
+  g.addColorStop(1, 'rgba(255, 160, 90, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  const tex = track(new THREE.CanvasTexture(c));
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
 
 export function createLighting(scene: THREE.Scene, quality: QualitySettings): LightingHandle {
@@ -103,6 +152,69 @@ export function createLighting(scene: THREE.Scene, quality: QualitySettings): Li
   group.add(sun);
   group.add(sun.target);
 
+  // Sun glow: a soft additive halo around the sun disc, so the sunset
+  // reads as a light source, not a flat yellow circle.
+  const glow = new THREE.Sprite(
+    track(
+      new THREE.SpriteMaterial({
+        map: makeGlowTexture(track),
+        transparent: true,
+        opacity: 0.55,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        fog: false,
+      }),
+    ),
+  );
+  glow.name = 'sun-glow';
+  glow.position.set(-260, 42, -320);
+  glow.scale.set(190, 190, 1);
+  group.add(glow);
+
+  // WS4 — clouds: one InstancedMesh of soft billboards drifting
+  // slowly eastward across the sky. They live in the lighting group
+  // (not the PMREM environment scene), so they never affect
+  // reflections. Eight instances, one draw call.
+  const cloudCount = 8;
+  const cloudGeo = track(new THREE.PlaneGeometry(1, 1));
+  const cloudMat = track(
+    new THREE.MeshBasicMaterial({
+      map: makeCloudTexture(track),
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false,
+      fog: false,
+    }),
+  );
+  const clouds = new THREE.InstancedMesh(cloudGeo, cloudMat, cloudCount);
+  clouds.name = 'clouds';
+  const cloudState: Array<{ x: number; y: number; z: number; w: number; h: number; speed: number }> = [];
+  const cloudRand = mulberry32(20261123);
+  const cloudDummy = new THREE.Object3D();
+  // Each cloud is a vertical plane facing the city centre, so it reads
+  // from anywhere the player stands. (A true camera billboard would
+  // need the camera in the update loop; the centre-facing plane is
+  // close enough at this distance, and the yaw is refreshed as the
+  // cloud drifts.)
+  const faceCentre = (s: { x: number; z: number }): number => Math.atan2(-s.x, -s.z);
+  for (let i = 0; i < cloudCount; i++) {
+    const s = {
+      x: -350 + cloudRand() * 700,
+      y: 95 + cloudRand() * 55,
+      z: -350 + cloudRand() * 700,
+      w: 90 + cloudRand() * 70,
+      h: 34 + cloudRand() * 26,
+      speed: 1 + cloudRand() * 1.5,
+    };
+    cloudState.push(s);
+    cloudDummy.position.set(s.x, s.y, s.z);
+    cloudDummy.rotation.set(0, faceCentre(s), 0);
+    cloudDummy.scale.set(s.w, s.h, 1);
+    cloudDummy.updateMatrix();
+    clouds.setMatrixAt(i, cloudDummy.matrix);
+  }
+  group.add(clouds);
+
   scene.add(group);
 
   return {
@@ -115,6 +227,20 @@ export function createLighting(scene: THREE.Scene, quality: QualitySettings): Li
         sun.shadow.map.dispose();
         sun.shadow.map = null;
       }
+    },
+    update: (dt: number) => {
+      // Drift the clouds eastward; wrap around so the sky never runs out.
+      for (let i = 0; i < cloudCount; i++) {
+        const s = cloudState[i];
+        s.x += s.speed * dt;
+        if (s.x > 380) s.x = -380;
+        cloudDummy.position.set(s.x, s.y, s.z);
+        cloudDummy.rotation.set(0, faceCentre(s), 0);
+        cloudDummy.scale.set(s.w, s.h, 1);
+        cloudDummy.updateMatrix();
+        clouds.setMatrixAt(i, cloudDummy.matrix);
+      }
+      clouds.instanceMatrix.needsUpdate = true;
     },
     dispose: () => {
       scene.remove(group);

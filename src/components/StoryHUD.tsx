@@ -1,4 +1,5 @@
 import type { StoryHudState } from '../game/StoryTypes';
+import { VcIcon } from './ui/VcIcon';
 
 interface StoryHudProps {
   story: StoryHudState;
@@ -12,7 +13,8 @@ interface StoryHudProps {
  * abandon button. Same layout as the job-mission HUD, teal
  * instead of yellow. Renders only while a story mission is
  * available or running — the complete / failed screens take
- * over after that.
+ * over after that. Styled on the Phase 1 system: Bebas title,
+ * Inter body, tabular numerals, original SVG icons (no emoji).
  */
 export default function StoryHUD({ story, onAbandon }: StoryHudProps) {
   if (story.state !== 'available' && story.state !== 'active') return null;
@@ -23,6 +25,7 @@ export default function StoryHUD({ story, onAbandon }: StoryHudProps) {
   const doneOptional = story.optional.filter((o) => o.done);
   return (
     <div className="mission-hud story-hud" aria-label={`Story mission ${story.title}`}>
+      <div className="mission-eyebrow mission-eyebrow--story">{story.chapterTitle}</div>
       <div className="mission-header">
         <span className="mission-title">{story.title}</span>
         <span className="mission-cash" aria-label={`Cash $${story.cash}`}>
@@ -34,13 +37,12 @@ export default function StoryHUD({ story, onAbandon }: StoryHudProps) {
       </div>
       <div className="mission-objective">
         {story.bearing !== null && story.distance !== null && (
-          <span
+          <VcIcon
+            name="arrow"
+            size={15}
             className="mission-arrow"
-            aria-hidden="true"
             style={{ transform: `rotate(${story.bearing}rad)` }}
-          >
-            ▲
-          </span>
+          />
         )}
         <span className="mission-objective-text">{story.objectiveText}</span>
         {story.distance !== null && (
@@ -53,19 +55,24 @@ export default function StoryHUD({ story, onAbandon }: StoryHudProps) {
       </div>
       {story.timeLeft !== null && (
         <div className={`mission-timer${urgent ? ' urgent' : ''}`} aria-label="Time left">
-          ⏱ {minutes}:{String(seconds).padStart(2, '0')}
+          <VcIcon name="clock" size={14} />
+          <span>
+            {minutes}:{String(seconds).padStart(2, '0')}
+          </span>
         </div>
       )}
       {story.optional.length > 0 && (
         <div className="story-hud-optional" aria-label="Optional objectives">
           {doneOptional.map((o) => (
             <div key={o.id} className="story-hud-optional-done">
-              ✓ {o.text}
+              <VcIcon name="check" size={13} />
+              <span>{o.text}</span>
             </div>
           ))}
           {pendingOptional.map((o) => (
             <div key={o.id} className="story-hud-optional-pending">
-              ○ {o.text}
+              <VcIcon name="circle" size={13} />
+              <span>{o.text}</span>
             </div>
           ))}
         </div>
@@ -74,7 +81,8 @@ export default function StoryHUD({ story, onAbandon }: StoryHudProps) {
       {story.hint && <div className="mission-hint">{story.hint}</div>}
       {story.state === 'active' && (
         <button type="button" className="mission-abandon" onClick={onAbandon}>
-          ✕ Abandon mission
+          <VcIcon name="close" size={13} />
+          <span>Abandon mission</span>
         </button>
       )}
     </div>

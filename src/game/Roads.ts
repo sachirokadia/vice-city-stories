@@ -162,6 +162,27 @@ export function buildRoads(
     group.add(inst);
   }
 
+  // --- WS4: parking bays (divider lines along the commercial avenue) ---
+  // A marked parking strip on the east side of the x = 60 avenue, in
+  // front of the shops (z -28..28). Markings only — no parked cars,
+  // so no new collision or traffic interaction.
+  const bayXf: THREE.Matrix4[] = [];
+  for (let z = -28; z <= 28; z += 3) {
+    dummy.position.set(64.3, 0.045, z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(1, 1, 1);
+    flat(dummy);
+    dummy.scale.set(0.14, 1.9, 1);
+    dummy.rotateZ(Math.PI / 2);
+    dummy.updateMatrix();
+    bayXf.push(dummy.matrix.clone());
+  }
+  if (bayXf.length > 0) {
+    const bays = new THREE.InstancedMesh(track(new THREE.PlaneGeometry(1, 1)), crossMat, bayXf.length);
+    bayXf.forEach((m, i) => bays.setMatrixAt(i, m));
+    group.add(bays);
+  }
+
   // --- Streetlights (instanced pole + lamp) -----------------------------
   const lightEvery = quality.tier === 'low' ? 2 : 1;
   const lightXf: THREE.Matrix4[] = [];

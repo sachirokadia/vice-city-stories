@@ -50,6 +50,9 @@ export interface DialogueState {
   open: boolean;
   dialogueId: string;
   nodeId: string;
+  /** Speaker id (e.g. 'mara') — the panel uses it for the
+   * portrait; the display name is `speaker`. */
+  speakerId: string;
   speaker: string;
   speakerColor: string;
   speakerInitial: string;
@@ -123,6 +126,7 @@ export function createDialogue(deps: DialogueDeps): DialogueHandle {
       open: true,
       dialogueId: current.id,
       nodeId: node.id,
+      speakerId: node.speaker,
       speaker: speaker.name,
       speakerColor: speaker.color,
       speakerInitial: speaker.initial,

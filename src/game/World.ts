@@ -19,6 +19,7 @@ import { buildRoads } from './Roads';
 import type { SignalState } from './Roads';
 import { buildVegetation } from './Vegetation';
 import { buildEnvironment } from './Environment';
+import { buildStreetProps } from './StreetProps';
 import { buildGarage } from './Garage';
 import { buildShop } from './Shop';
 import { GeometryBatch, composeMatrix } from './Merge';
@@ -125,6 +126,7 @@ export function buildWorld(scene: THREE.Scene, quality: QualitySettings): WorldH
   const { buildings } = buildBuildings(group, layout, quality, rand, track);
   const roads = buildRoads(group, layout, quality, track);
   buildVegetation(group, layout, quality, track);
+  buildStreetProps(group, layout, quality, track);
   const env = buildEnvironment(group, layout, track);
 
   // ---- The Sunset Garage: one physical garage, south-east of spawn.

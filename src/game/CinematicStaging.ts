@@ -48,11 +48,13 @@ export function createStagedActor(
     disposables.push(r);
     return r;
   };
-  const { group, rig, mats } = createCharacter(track);
+  const info = storyCharacter(characterId);
+  // Phase 1: the character's design (proportions, hair, clothing,
+  // accessories) goes into the build; no design = the original rig.
+  const { group, rig, mats } = createCharacter(track, info.design);
   group.name = `staged-${characterId}`;
   // Recolour the shared rig with this character's palette.
   // Kai has no palette: he keeps the rig's defaults.
-  const info = storyCharacter(characterId);
   const palette = info.palette;
   if (palette) {
     mats.jacket.color.set(palette.jacket);

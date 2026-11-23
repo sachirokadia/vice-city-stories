@@ -244,6 +244,12 @@ export interface EngineStats {
   fps: number;
   quality: QualitySettings;
   position: THREE.Vector3;
+  /**
+   * Facing heading (radians, forward = (sin h, cos h)): the vehicle's
+   * heading while driving, the player's mesh facing while on foot.
+   * Read-only — exposed for the HUD minimap's player arrow.
+   */
+  heading: number;
   mode: DriveMode;
   speedKmh: number;
   gear: Gear;
@@ -957,6 +963,11 @@ export class GameEngine {
         : this.player
           ? this.player.position.clone()
           : SPAWN.clone(),
+      heading: driving
+        ? this.vehicle.heading
+        : this.player
+          ? this.player.mesh.rotation.y
+          : 0,
       mode: this.mode,
       speedKmh: this.vehicle ? this.vehicle.speedKmh() : 0,
       gear: this.vehicle ? this.vehicle.gear() : 'N',
@@ -2509,6 +2520,7 @@ export class GameEngine {
       this.cb.onDowned?.(true);
     }
     this.worldHandle.update(dt);
+    this.lighting?.update(dt);
     this.updateCamera(dt);
     // Shadow pass only when a moving caster moved: the player and
     // the car are the only dynamic casters, everything else is

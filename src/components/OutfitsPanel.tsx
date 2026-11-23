@@ -58,7 +58,7 @@ export default function OutfitsPanel({ state, onBuy, onSelect, onClose }: Outfit
         <div className="garage-header">
           <div>
             <h2 className="garage-title">Outfits</h2>
-            <p className="garage-sub">Four looks, one protagonist. The face and the moves stay his.</p>
+            <p className="garage-sub">Six looks, one protagonist. The face and the moves stay his.</p>
           </div>
           <div className="garage-cash" aria-label={`Cash balance $${state.cash}`}>
             💰 ${state.cash.toLocaleString()}
