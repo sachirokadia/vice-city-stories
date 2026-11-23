@@ -32,7 +32,10 @@ export type VcIconName =
   | 'circle'
   | 'user'
   | 'spark'
-  | 'gauge';
+  | 'gauge'
+  | 'map'
+  | 'pin'
+  | 'back';
 
 const PATHS: Record<VcIconName, React.ReactNode> = {
   play: <path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none" />,
@@ -151,6 +154,19 @@ const PATHS: Record<VcIconName, React.ReactNode> = {
       <path d="M4 18.5h.01M20 18.5h.01" />
     </>
   ),
+  map: (
+    <>
+      <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z" />
+      <path d="M9 4v14M15 6v14" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z" />
+      <circle cx="12" cy="10" r="2.6" />
+    </>
+  ),
+  back: <path d="M19 12H5M12 19l-7-7 7-7" />,
 };
 
 export interface VcIconProps {

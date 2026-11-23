@@ -36,6 +36,11 @@ import SprintHUD from './SprintHUD';
 import CombatHUD from './CombatHUD';
 import RangePanel from './RangePanel';
 import Minimap from './Minimap';
+import FullMap from './FullMap';
+import StatisticsPanel, { buildStatsSnapshot } from './StatisticsPanel';
+import type { StatsSnapshot } from './StatisticsPanel';
+import PauseHub from './PauseHub';
+import type { SettingsSection } from './SettingsPanel';
 import Toast, { type ToastData, type ToastTone } from './Toast';
 import { getWeapon } from '../game/Weapons';
 import { PAINT_PRICE } from '../game/GarageProgress';
@@ -108,6 +113,16 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   const [combat, setCombat] = useState<CombatHudState | null>(null);
   const [range, setRange] = useState<RangeUiState | null>(null);
   const [showRange, setShowRange] = useState(false);
+  // Group 2 (WS3): full map + statistics + the Pause Hub's
+  // return-to-hub flag. `returnToHub` is true only while a panel
+  // opened FROM the hub is up; closing such a panel returns to the
+  // hub instead of resuming. It is never true while the hub itself
+  // is visible.
+  const [showMap, setShowMap] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [stats, setStats] = useState<StatsSnapshot | null>(null);
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('Graphics');
+  const [returnToHub, setReturnToHub] = useState(false);
   const [downed, setDowned] = useState(false);
   const [encounters, setEncounters] = useState<EncounterState[]>([]);
   const [contracts, setContracts] = useState<ContractState[]>([]);
@@ -276,12 +291,51 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     if (paused) {
       engine.start();
       setPaused(false);
+      setReturnToHub(false);
       setShowSettings(false);
       setShowBoard(false);
+      setShowStoryBoard(false);
+      setShowGarage(false);
+      setShowShop(false);
+      setShowOutfits(false);
+      setShowCollection(false);
+      setShowRange(false);
+      setShowMap(false);
+      setShowStats(false);
     } else {
       engine.stop();
       setPaused(true);
     }
+  };
+
+  /**
+   * Close a panel. When it was opened from the Pause Hub, hide it and
+   * return to the hub (engine stays stopped, paused stays true);
+   * otherwise resume the game exactly as before. Every panel closer
+   * below goes through this — the hub contract in one place.
+   */
+  const closeToHubOrResume = (hide: () => void) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (returnToHub) {
+      hide();
+      setReturnToHub(false);
+    } else {
+      engine.start();
+      setPaused(false);
+      hide();
+    }
+  };
+
+  /** Picking a mission from a board always resumes play (and clears
+   *  the hub flag), even when the board was opened from the hub. */
+  const resumeFromPanel = (hide: () => void) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.start();
+    setPaused(false);
+    setReturnToHub(false);
+    hide();
   };
 
   /** Open the mission board: the engine pauses while it is up. */
@@ -295,18 +349,14 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeBoard = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowBoard(false);
+    closeToHubOrResume(() => setShowBoard(false));
   };
 
   const selectFromBoard = (id: string) => {
     const engine = engineRef.current;
     if (!engine) return;
     if (engine.selectMission(id)) {
-      closeBoard();
+      resumeFromPanel(() => setShowBoard(false));
     } else {
       setBoard(engine.getMissionBoard());
     }
@@ -337,18 +387,14 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeStoryBoard = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowStoryBoard(false);
+    closeToHubOrResume(() => setShowStoryBoard(false));
   };
 
   const selectStoryFromBoard = (id: string) => {
     const engine = engineRef.current;
     if (!engine) return;
     if (engine.selectStoryMission(id)) {
-      closeStoryBoard();
+      resumeFromPanel(() => setShowStoryBoard(false));
     } else {
       setStoryBoard(engine.getStoryBoard());
     }
@@ -365,11 +411,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeGarage = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowGarage(false);
+    closeToHubOrResume(() => setShowGarage(false));
   };
 
   /** Garage actions: the engine owns the cash and the save; the
@@ -438,11 +480,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeShop = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowShop(false);
+    closeToHubOrResume(() => setShowShop(false));
   };
 
   const refreshShop = () => {
@@ -477,11 +515,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeOutfits = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowOutfits(false);
+    closeToHubOrResume(() => setShowOutfits(false));
   };
 
   const refreshOutfits = () => {
@@ -533,11 +567,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeRange = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowRange(false);
+    closeToHubOrResume(() => setShowRange(false));
   };
 
   const refreshRange = () => {
@@ -575,11 +605,86 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   };
 
   const closeCollection = () => {
+    closeToHubOrResume(() => setShowCollection(false));
+  };
+
+  /** Open the full city map: the engine pauses while it is up. */
+  const openMap = () => {
     const engine = engineRef.current;
     if (!engine) return;
-    engine.start();
-    setPaused(false);
-    setShowCollection(false);
+    engine.stop();
+    setPaused(true);
+    setShowMap(true);
+  };
+
+  const closeMap = () => {
+    closeToHubOrResume(() => setShowMap(false));
+  };
+
+  /** Open statistics: snapshot the real values from the engine. */
+  const openStats = () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.stop();
+    setPaused(true);
+    setStats(buildStatsSnapshot(engine));
+    setShowStats(true);
+  };
+
+  const closeStats = () => {
+    closeToHubOrResume(() => setShowStats(false));
+  };
+
+  /** Statistics → mission board. The board opens with the hub flag
+   *  still set (statistics only opens from the hub), so closing the
+   *  board returns to the hub, not to statistics. */
+  const viewJobsFromStats = () => {
+    setShowStats(false);
+    openBoard();
+  };
+
+  /** Open settings on a given tab. The game is already paused when
+   *  this is called (from the hub), so no engine stop is needed. */
+  const openSettings = (section: SettingsSection) => {
+    setSettingsSection(section);
+    setShowSettings(true);
+  };
+
+  /** Closing settings drops back onto the hub (or resumes, if it was
+   *  somehow opened without the hub) and clears the hub flag. */
+  const closeSettings = () => {
+    setShowSettings(false);
+    setReturnToHub(false);
+  };
+
+  /** Hub openers: same panel, but the close returns to the hub. */
+  const openBoardFromHub = () => {
+    setReturnToHub(true);
+    openBoard();
+  };
+  const openStoryBoardFromHub = () => {
+    setReturnToHub(true);
+    openStoryBoard();
+  };
+  const openGarageFromHub = () => {
+    setReturnToHub(true);
+    openGarage();
+  };
+  const openOutfitsFromHub = () => {
+    setReturnToHub(true);
+    openOutfits();
+  };
+  const openMapFromHub = () => {
+    setReturnToHub(true);
+    openMap();
+  };
+  const openStatsFromHub = () => {
+    setReturnToHub(true);
+    openStats();
+  };
+  const openSettingsFromHub = (section: SettingsSection) => {
+    setReturnToHub(true);
+    openSettings(section);
   };
 
   const quit = () => {
@@ -598,6 +703,43 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
   // and quitting to the menu stays available as the escape
   // hatch (engine dispose cleans the scene up silently).
   const hudHidden = paused || cinematic !== null;
+
+  // The Pause Hub is visible exactly when the game is paused and no
+  // panel, dialogue, cinematic or downed screen is in front of it.
+  // (This is the same condition the old pause overlay used, extended
+  // with the two new Group 2 screens.)
+  const hubOpen =
+    paused &&
+    !downed &&
+    !dialogue &&
+    !cinematic &&
+    !showSettings &&
+    !showBoard &&
+    !showStoryBoard &&
+    !showGarage &&
+    !showShop &&
+    !showOutfits &&
+    !showCollection &&
+    !showRange &&
+    !showMap &&
+    !showStats;
+
+  // Escape resumes, but ONLY from the hub — never while a panel,
+  // dialogue or cinematic is open (those own their own keys).
+  useEffect(() => {
+    if (!hubOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        togglePause();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // togglePause is safe here: hubOpen true implies paused true at
+    // this render, so its resume branch is the one that runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hubOpen]);
 
   return (
     <div className="game-screen">
@@ -686,6 +828,10 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
                   <button type="button" className="hud-button" onClick={openOutfits} aria-label="Outfits">
                     <VcIcon name="outfits" size={15} />
                     <span>Outfits</span>
+                  </button>
+                  <button type="button" className="hud-button" onClick={openMap} aria-label="City map">
+                    <VcIcon name="map" size={15} />
+                    <span>Map</span>
                   </button>
                   <button type="button" className="hud-button" onClick={togglePause} aria-label="Pause game">
                     <VcIcon name="pause" size={15} />
@@ -1113,27 +1259,35 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
             />
           )}
 
-          {paused && !downed && !dialogue && !cinematic && !showSettings && !showBoard && !showStoryBoard && !showGarage && !showShop && !showOutfits && !showCollection && !showRange && (
-            <div className="pause-overlay" role="dialog" aria-label="Paused">
-              <h2>Paused</h2>
-              <p>The city waits for you.</p>
-              <button type="button" className="play-button" onClick={togglePause}>
-                ▶&nbsp; Resume
-              </button>
-              <button type="button" className="hud-button pause-quit" onClick={() => setShowSettings(true)}>
-                ⚙ Settings
-              </button>
-              <button type="button" className="hud-button pause-quit" onClick={quit}>
-                Quit to menu
-              </button>
-            </div>
+          {hubOpen && (
+            <PauseHub
+              onResume={togglePause}
+              onMissions={openBoardFromHub}
+              onStory={openStoryBoardFromHub}
+              onGarage={openGarageFromHub}
+              onOutfits={openOutfitsFromHub}
+              onSettings={() => openSettingsFromHub('Graphics')}
+              onControls={() => openSettingsFromHub('Controls')}
+              onMap={openMapFromHub}
+              onStats={openStatsFromHub}
+              onQuit={quit}
+            />
+          )}
+
+          {showMap && (
+            <FullMap engineRef={engineRef} quality={quality} onBack={closeMap} />
+          )}
+
+          {showStats && stats && (
+            <StatisticsPanel stats={stats} onViewJobs={viewJobsFromStats} onClose={closeStats} />
           )}
 
           {paused && showSettings && (
             <SettingsPanel
               settings={settings}
               onChange={onSettingsChange}
-              onClose={() => setShowSettings(false)}
+              onClose={closeSettings}
+              initialSection={settingsSection}
             />
           )}
 
