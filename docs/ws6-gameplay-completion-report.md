@@ -521,7 +521,17 @@ expected line.
 **Console errors:** `[]` in every Lena run (carve-out run 1, run 2,
 lifecycle re-run). No PAGEERROR.
 
-**Test 7 — qa81 on the new build:** _TO BE FILLED after the qa81 run._
+**Test 7 — qa81 on the new build: PASS, 16/16.** Log
+`qa81-lena.log`, exit 0 (~19 min, 2026-11-23 ~23:17 IST): draw calls
+265 at spawn; contracts/encounters dormant, enemies 0, peds 18 /
+traffic 14; BEACON RUN checkpoint (0.0, −84.7) + delivery (0.0,
+−157.1), cash 12,500; shop/outfit cash 12,190; coins 0 → 1; sprint
+complete, cash 12,340; garage cash 4,040, all 4 owned, Trailhawk-X
+selected; range shot; carbine mag 25 after 5 shots (no flake), palm
+11 / carbine 25 after switch; cash 2,840; South Beach +250 → 3,090;
+North Dunes +250 → 3,340; contract active, remaining 3, draw calls
+262 with contract; arrest → busted → respawn walk, wanted clear;
+draw calls end 126; console errors `[]`.
 
 **Release:** _TO BE FILLED after the checkpoint commit, merge, deploy
 and live check._
