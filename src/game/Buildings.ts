@@ -233,15 +233,21 @@ export function buildBuildings(
       unitBox,
       composeMatrix(plot.x, plot.h / 2, plot.z, 0, plot.w, plot.h, plot.d),
     );
-    // WS4 — downtown podium: a wider ground-floor base (4 m tall) so
-    // the towers read as buildings on a plinth, not slabs dropped on
-    // the pad. The collision box grows to match it.
+    // WS4 — downtown podium: a wider ground-floor base (5 m tall, WS5:
+    // was 4 m) so the towers read as buildings on a plinth, not slabs
+    // dropped on the pad. The collision box grows to match it.
     const podium = plot.district === 'downtown';
     const podiumOut = podium ? 0.06 : 0;
     if (podium) {
       facadeBatchFor(facadeMat).add(
         unitBox,
-        composeMatrix(plot.x, 2, plot.z, 0, plot.w * 1.12, 4, plot.d * 1.12),
+        composeMatrix(plot.x, 2.5, plot.z, 0, plot.w * 1.12, 5, plot.d * 1.12),
+      );
+      // WS5 — dark cornice band at the plinth top, so the podium reads
+      // as a deliberate base instead of a slightly wider ground floor.
+      roofBatch.add(
+        unitBox,
+        composeMatrix(plot.x, 5, plot.z, 0, plot.w * 1.12 + 0.15, 0.3, plot.d * 1.12 + 0.15),
       );
     }
     // WS4 — downtown setback: tall towers step in above ~70% of their
@@ -280,9 +286,11 @@ export function buildBuildings(
     // WS4 — parapet rim: four thin boxes around the roof edge (not
     // downtown — those get the setback crown instead). Reads as a
     // raised roofline from the street and from the follow camera.
+    // WS5: taller and thicker (was 0.7 m high, 0.35 thick) so the rim
+    // is actually visible from street level.
     if (setbackH === 0 && plot.district !== 'park') {
-      const pt = 0.35; // parapet thickness
-      const ph = 0.7; // parapet height above the roof
+      const pt = 0.45; // parapet thickness
+      const ph = 1.0; // parapet height above the roof
       const px = plot.w / 2 - pt / 2;
       const pz = plot.d / 2 - pt / 2;
       roofBatch.add(unitBox, composeMatrix(plot.x - px, plot.h + ph / 2, plot.z, 0, pt, ph, plot.d));

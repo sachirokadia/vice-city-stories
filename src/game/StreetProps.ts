@@ -149,26 +149,39 @@ export function buildStreetProps(
   }
 
   // --- Park hedges: low borders with a gap on each side for entry -----
-  // The hedges are 0.5 m tall — a visual edge, not a wall — and the
-  // gaps sit mid-side so the collectibles inside stay reachable.
-  const hedgeMat = track(new THREE.MeshStandardMaterial({ color: 0x2c5a34, roughness: 1 }));
+  // WS5: the 0.5 m WS4 hedges read as dark patches in the grass, so
+  // they are now 0.9 m tall and 0.7 m thick in a lighter green, with
+  // a clipped-top trim strip in a still lighter green — a deliberate
+  // landscaped edge, not a wall. The gaps sit mid-side so the
+  // collectibles inside stay reachable.
+  const hedgeMat = track(new THREE.MeshStandardMaterial({ color: 0x3e7a37, roughness: 1 }));
+  const hedgeTrimMat = track(new THREE.MeshStandardMaterial({ color: 0x7fb84e, roughness: 1 }));
   const hedgeBatch = new GeometryBatch();
+  const hedgeTrimBatch = new GeometryBatch();
   for (const park of layout.parks) {
     const w = park.maxX - park.minX;
     const d = park.maxZ - park.minZ;
     const gap = 8; // entry gap, centred on each side
     const seg = (w - gap) / 2;
     // North + south edges (along x), with a centre gap.
-    hedgeBatch.add(unitBox, composeMatrix(park.minX + seg / 2, 0.25, park.minZ, 0, seg, 0.5, 0.5));
-    hedgeBatch.add(unitBox, composeMatrix(park.maxX - seg / 2, 0.25, park.minZ, 0, seg, 0.5, 0.5));
-    hedgeBatch.add(unitBox, composeMatrix(park.minX + seg / 2, 0.25, park.maxZ, 0, seg, 0.5, 0.5));
-    hedgeBatch.add(unitBox, composeMatrix(park.maxX - seg / 2, 0.25, park.maxZ, 0, seg, 0.5, 0.5));
+    hedgeBatch.add(unitBox, composeMatrix(park.minX + seg / 2, 0.45, park.minZ, 0, seg, 0.9, 0.7));
+    hedgeBatch.add(unitBox, composeMatrix(park.maxX - seg / 2, 0.45, park.minZ, 0, seg, 0.9, 0.7));
+    hedgeBatch.add(unitBox, composeMatrix(park.minX + seg / 2, 0.45, park.maxZ, 0, seg, 0.9, 0.7));
+    hedgeBatch.add(unitBox, composeMatrix(park.maxX - seg / 2, 0.45, park.maxZ, 0, seg, 0.9, 0.7));
+    hedgeTrimBatch.add(unitBox, composeMatrix(park.minX + seg / 2, 0.94, park.minZ, 0, seg, 0.14, 0.74));
+    hedgeTrimBatch.add(unitBox, composeMatrix(park.maxX - seg / 2, 0.94, park.minZ, 0, seg, 0.14, 0.74));
+    hedgeTrimBatch.add(unitBox, composeMatrix(park.minX + seg / 2, 0.94, park.maxZ, 0, seg, 0.14, 0.74));
+    hedgeTrimBatch.add(unitBox, composeMatrix(park.maxX - seg / 2, 0.94, park.maxZ, 0, seg, 0.14, 0.74));
     // East + west edges (along z), with a centre gap.
     const segZ = (d - gap) / 2;
-    hedgeBatch.add(unitBox, composeMatrix(park.minX, 0.25, park.minZ + segZ / 2, 0, 0.5, 0.5, segZ));
-    hedgeBatch.add(unitBox, composeMatrix(park.minX, 0.25, park.maxZ - segZ / 2, 0, 0.5, 0.5, segZ));
-    hedgeBatch.add(unitBox, composeMatrix(park.maxX, 0.25, park.minZ + segZ / 2, 0, 0.5, 0.5, segZ));
-    hedgeBatch.add(unitBox, composeMatrix(park.maxX, 0.25, park.maxZ - segZ / 2, 0, 0.5, 0.5, segZ));
+    hedgeBatch.add(unitBox, composeMatrix(park.minX, 0.45, park.minZ + segZ / 2, 0, 0.7, 0.9, segZ));
+    hedgeBatch.add(unitBox, composeMatrix(park.minX, 0.45, park.maxZ - segZ / 2, 0, 0.7, 0.9, segZ));
+    hedgeBatch.add(unitBox, composeMatrix(park.maxX, 0.45, park.minZ + segZ / 2, 0, 0.7, 0.9, segZ));
+    hedgeBatch.add(unitBox, composeMatrix(park.maxX, 0.45, park.maxZ - segZ / 2, 0, 0.7, 0.9, segZ));
+    hedgeTrimBatch.add(unitBox, composeMatrix(park.minX, 0.94, park.minZ + segZ / 2, 0, 0.74, 0.14, segZ));
+    hedgeTrimBatch.add(unitBox, composeMatrix(park.minX, 0.94, park.maxZ - segZ / 2, 0, 0.74, 0.14, segZ));
+    hedgeTrimBatch.add(unitBox, composeMatrix(park.maxX, 0.94, park.minZ + segZ / 2, 0, 0.74, 0.14, segZ));
+    hedgeTrimBatch.add(unitBox, composeMatrix(park.maxX, 0.94, park.maxZ - segZ / 2, 0, 0.74, 0.14, segZ));
   }
   const hedgeGeo = hedgeBatch.build();
   if (hedgeGeo) {
@@ -176,5 +189,11 @@ export function buildStreetProps(
     hedges.castShadow = true;
     hedges.receiveShadow = true;
     group.add(hedges);
+  }
+  const hedgeTrimGeo = hedgeTrimBatch.build();
+  if (hedgeTrimGeo) {
+    const hedgeTrim = new THREE.Mesh(track(hedgeTrimGeo), hedgeTrimMat);
+    hedgeTrim.receiveShadow = true;
+    group.add(hedgeTrim);
   }
 }

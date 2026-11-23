@@ -100,7 +100,8 @@ export function buildEnvironment(
 
   // --- WS4: dunes, rocks, lifeguard tower ------------------------------
   // Dunes: low ripples along the sand's west edge (near the boardwalk).
-  // Kept under 0.5 m tall so they read as dune texture, not walls.
+  // WS5: taller (up to ~0.85 m) and a deeper sand tone than the beach
+  // plane, so they read as dune shapes instead of flat texture.
   const duneRand = mulberry32(20261123);
   const duneXf: THREE.Matrix4[] = [];
   for (let i = 0; i < 26; i++) {
@@ -108,14 +109,14 @@ export function buildEnvironment(
     const z = -CITY_HALF + 14 + duneRand() * (CITY_HALF * 2 - 28);
     dummy.position.set(x, 0, z);
     dummy.rotation.set(0, duneRand() * Math.PI, 0);
-    dummy.scale.set(2.2 + duneRand() * 2.4, 0.3 + duneRand() * 0.2, 1.6 + duneRand() * 1.6);
+    dummy.scale.set(2.2 + duneRand() * 2.4, 0.45 + duneRand() * 0.4, 1.6 + duneRand() * 1.6);
     dummy.updateMatrix();
     duneXf.push(dummy.matrix.clone());
   }
   if (duneXf.length > 0) {
     const dunes = new THREE.InstancedMesh(
       track(new THREE.SphereGeometry(1, 10, 6)),
-      track(new THREE.MeshStandardMaterial({ color: 0xd9c193, roughness: 1 })),
+      track(new THREE.MeshStandardMaterial({ color: 0xcfa96e, roughness: 1 })),
       duneXf.length,
     );
     duneXf.forEach((m, i) => dunes.setMatrixAt(i, m));
@@ -123,12 +124,14 @@ export function buildEnvironment(
     group.add(dunes);
   }
   // Rocks: grey boulders at the waterline's north and south ends, plus
-  // a few scattered on the sand.
+  // a few scattered on the sand. WS5: bigger (up to ~1.9 m) and a
+  // cooler, darker grey, so they read as rocks from gameplay distance
+  // instead of sand-coloured lumps.
   const rockXf: THREE.Matrix4[] = [];
   for (let i = 0; i < 8; i++) {
     const z = (i < 4 ? -1 : 1) * (CITY_HALF - 12 - duneRand() * 14);
     const x = layout.waterStartX - 4 - duneRand() * 4;
-    const s = 0.5 + duneRand() * 0.9;
+    const s = 0.9 + duneRand() * 1.0;
     dummy.position.set(x, 0.2 * s, z);
     dummy.rotation.set(duneRand() * Math.PI, duneRand() * Math.PI, 0);
     dummy.scale.set(s, s * 0.7, s);
@@ -138,7 +141,7 @@ export function buildEnvironment(
   for (let i = 0; i < 6; i++) {
     const x = layout.beachStartX + 8 + duneRand() * 44;
     const z = -CITY_HALF + 20 + duneRand() * (CITY_HALF * 2 - 40);
-    const s = 0.35 + duneRand() * 0.5;
+    const s = 0.7 + duneRand() * 0.6;
     dummy.position.set(x, 0.15 * s, z);
     dummy.rotation.set(0, duneRand() * Math.PI, 0);
     dummy.scale.set(s, s * 0.65, s);
@@ -148,7 +151,7 @@ export function buildEnvironment(
   if (rockXf.length > 0) {
     const rocks = new THREE.InstancedMesh(
       track(new THREE.IcosahedronGeometry(1, 0)),
-      track(new THREE.MeshStandardMaterial({ color: 0x8a8578, roughness: 1 })),
+      track(new THREE.MeshStandardMaterial({ color: 0x6b6f75, roughness: 1 })),
       rockXf.length,
     );
     rockXf.forEach((m, i) => rocks.setMatrixAt(i, m));

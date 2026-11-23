@@ -64,6 +64,15 @@ export function buildVegetation(
   const palmXf = palmBase;
   const up = (m: THREE.Matrix4, y: number): THREE.Matrix4 =>
     m.clone().multiply(new THREE.Matrix4().makeTranslation(0, y, 0));
+  // WS5 — crown-width variety: each palm's crown gets its own
+  // horizontal spread (0.85–1.2x), so silhouettes differ even between
+  // palms of the same height. A dedicated seeded RNG keeps the main
+  // rand() sequence (and every other placement) untouched.
+  const crownRand = mulberry32(20261123);
+  const leafUp = (m: THREE.Matrix4, y: number): THREE.Matrix4 => {
+    const w = 0.85 + crownRand() * 0.35;
+    return up(m, y).multiply(new THREE.Matrix4().makeScale(w, 1, w));
+  };
 
   if (palmXf.length > 0) {
     const trunkGeo = track(new THREE.CylinderGeometry(0.16, 0.24, 4.6, 6));
@@ -75,7 +84,7 @@ export function buildVegetation(
     const leafGeo = track(new THREE.ConeGeometry(2.1, 2.8, 7));
     const leafMat = track(new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.85 }));
     const leaves = new THREE.InstancedMesh(leafGeo, leafMat, palmXf.length);
-    palmXf.forEach((m, i) => leaves.setMatrixAt(i, up(m, 5.4)));
+    palmXf.forEach((m, i) => leaves.setMatrixAt(i, leafUp(m, 5.4)));
     leaves.castShadow = true;
     group.add(leaves);
   }
@@ -90,21 +99,23 @@ export function buildVegetation(
     const leafGeo = track(new THREE.ConeGeometry(2.5, 2.2, 7));
     const leafMat = track(new THREE.MeshStandardMaterial({ color: 0x37935f, roughness: 0.85 }));
     const leaves = new THREE.InstancedMesh(leafGeo, leafMat, shortPalmBase.length);
-    shortPalmBase.forEach((m, i) => leaves.setMatrixAt(i, up(m, 3.4)));
+    shortPalmBase.forEach((m, i) => leaves.setMatrixAt(i, leafUp(m, 3.4)));
     leaves.castShadow = true;
     group.add(leaves);
   }
 
   // --- Sidewalk shrubs: low planters along the avenues ----------------
   // One merged instanced set, placed on the sidewalk edge opposite the
-  // palm rows so they never block a lane or a doorway.
+  // palm rows so they never block a lane or a doorway. WS5: taller
+  // and a lighter green, so they read as shrubs instead of dark
+  // sidewalk stains.
   const shrubXf: THREE.Matrix4[] = [];
   for (const sx of layout.streetsX) {
     for (let z = -CITY_HALF + 26; z < CITY_HALF; z += 24) {
       if (Math.hypot(sx - 8.6, z - 8) < 14) continue; // spawn plaza clear
-      dummy.position.set(sx - 8.6, 0.35, z);
+      dummy.position.set(sx - 8.6, 0.42, z);
       dummy.rotation.set(0, rand() * Math.PI, 0);
-      dummy.scale.set(0.9 + rand() * 0.5, 0.55 + rand() * 0.25, 0.9 + rand() * 0.5);
+      dummy.scale.set(0.9 + rand() * 0.5, 0.7 + rand() * 0.3, 0.9 + rand() * 0.5);
       dummy.updateMatrix();
       shrubXf.push(dummy.matrix.clone());
     }
@@ -112,7 +123,7 @@ export function buildVegetation(
   if (shrubXf.length > 0) {
     const shrubs = new THREE.InstancedMesh(
       track(new THREE.IcosahedronGeometry(0.9, 0)),
-      track(new THREE.MeshStandardMaterial({ color: 0x3a7d44, roughness: 0.95 })),
+      track(new THREE.MeshStandardMaterial({ color: 0x46a04e, roughness: 0.95 })),
       shrubXf.length,
     );
     setInst(shrubs, shrubXf);

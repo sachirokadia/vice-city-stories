@@ -174,14 +174,16 @@ export function createLighting(scene: THREE.Scene, quality: QualitySettings): Li
   // WS4 — clouds: one InstancedMesh of soft billboards drifting
   // slowly eastward across the sky. They live in the lighting group
   // (not the PMREM environment scene), so they never affect
-  // reflections. Eight instances, one draw call.
-  const cloudCount = 8;
+  // reflections. WS5: twelve instances (was eight), larger and more
+  // opaque, spread over a wider band of sky, so the sky reads
+  // cloudy from the street instead of only from the beach.
+  const cloudCount = 12;
   const cloudGeo = track(new THREE.PlaneGeometry(1, 1));
   const cloudMat = track(
     new THREE.MeshBasicMaterial({
       map: makeCloudTexture(track),
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.62,
       depthWrite: false,
       fog: false,
     }),
@@ -200,10 +202,10 @@ export function createLighting(scene: THREE.Scene, quality: QualitySettings): Li
   for (let i = 0; i < cloudCount; i++) {
     const s = {
       x: -350 + cloudRand() * 700,
-      y: 95 + cloudRand() * 55,
+      y: 85 + cloudRand() * 75,
       z: -350 + cloudRand() * 700,
-      w: 90 + cloudRand() * 70,
-      h: 34 + cloudRand() * 26,
+      w: 110 + cloudRand() * 80,
+      h: 40 + cloudRand() * 28,
       speed: 1 + cloudRand() * 1.5,
     };
     cloudState.push(s);
