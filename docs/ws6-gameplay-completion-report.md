@@ -584,5 +584,18 @@ North Dunes +250 → 3,340; contract active, remaining 3, draw calls
 262 with contract; arrest → busted → respawn walk, wanted clear;
 draw calls end 126; console errors `[]`.
 
-**Release:** _TO BE FILLED after the checkpoint commit, merge, deploy
-and live check._
+**Release:** checkpoint `500ef21` (UI branch) + docs `4153aa3`,
+merged to main as `80a4573` — "Merge Lena cinematic carve-out
+into main" (conflict in the report resolved by hand: main's filled
+§13–§16 kept, branch's §4 status change and §17 kept). Pushed;
+remote main verified at
+`80a4573fce7d6b460a578f33e4e6cfa1913a0b22`. Vercel Production
+deployment `BMxUTPFbQkZeirutUCGy981KhGo5`, **Ready** (created
+~23:18 IST, 6 s build). Live site verified 2026-11-23 ~23:18–23:21
+IST: loading completes, menu shows, PLAY enters the world, full HUD
+(cash $0, health 100, minimap, Palm 9 12/60), BEACON RUN panel,
+movement confirmed (W key, marker 10 m → 9 m). **Bundle served:
+`index-C1GcIcyo.js`** (200); the old `index-B9LExE1Q.js` 404s. No
+visible errors (the cloud browser's dev console was not opened for
+this check; the harness runs on the same build recorded console
+`[]`). Docs follow-up on main: this §17 update.
