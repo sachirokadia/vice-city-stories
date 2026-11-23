@@ -117,9 +117,16 @@ export interface StoryCampaignDeps {
    * when the cinematic cannot start — the campaign then falls
    * through to the dialogue. `onDone` fires when the cinematic
    * ends, complete or skipped; the campaign opens the dialogue
-   * from it, so a skip never skips the conversation.
+   * from it, so a skip never skips the conversation. `opts`
+   * carries the owning mission id for the approved WS6
+   * carve-out: a mission's own dialogue cinematic may play
+   * while that mission is active (Lena's `talk-lena` only).
    */
-  openCinematic: (cinematicId: string, onDone: () => void) => boolean;
+  openCinematic: (
+    cinematicId: string,
+    onDone: () => void,
+    opts?: { storyMissionId?: string },
+  ) => boolean;
   /**
    * Combat system access (9E): the story's defeat/defend
    * objectives are evaluated against the live enemy system,
@@ -197,6 +204,9 @@ export interface StoryCampaignHandle {
   continueAfterComplete: () => void;
   dismissFailed: () => void;
   getHudState: () => StoryHudState;
+  /** Current objective, for the engine's cinematic carve-out
+   * check (WS6). Undefined when no objective is current. */
+  getCurrentObjective: () => StoryObjectiveDef | undefined;
   getSelectedDef: () => StoryMissionDef;
   selectMission: (id: string) => boolean;
   getBoardState: () => StoryBoardState;
@@ -683,18 +693,24 @@ export function createStoryCampaign(
       const line = obj.line;
       const objectiveId = obj.id;
       if (
-        deps.openCinematic(obj.cinematicId, () => {
-          const current = currentObjective();
-          if (!current || current.type !== 'dialogue' || current.id !== objectiveId)
-            return;
-          if (state !== 'available' && state !== 'active') return;
-          if (!deps.openDialogue(dialogueId)) {
-            if (state === 'available') {
-              acceptMission();
-              if (line) setFlash(line);
+        deps.openCinematic(
+          obj.cinematicId,
+          () => {
+            const current = currentObjective();
+            if (!current || current.type !== 'dialogue' || current.id !== objectiveId)
+              return;
+            if (state !== 'available' && state !== 'active') return;
+            if (!deps.openDialogue(dialogueId)) {
+              if (state === 'available') {
+                acceptMission();
+                if (line) setFlash(line);
+              }
             }
-          }
-        })
+          },
+          // Approved WS6 carve-out: this mission's own dialogue
+          // cinematic may play while the mission is active.
+          { storyMissionId: def.id },
+        )
       ) {
         return true;
       }
@@ -1175,6 +1191,8 @@ export function createStoryCampaign(
     },
 
     getHudState: buildState,
+
+    getCurrentObjective: () => currentObjective(),
 
     getSelectedDef: () => def,
 

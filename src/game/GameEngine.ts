@@ -640,7 +640,8 @@ export class GameEngine {
         getCash: () => engine.missions.getCash(),
         teleport: (snap) => engine.teleportToCheckpoint(snap),
         openDialogue: (dialogueId) => engine.openDialogue(dialogueId),
-        openCinematic: (cinematicId, onDone) => engine.openCinematic(cinematicId, onDone),
+        openCinematic: (cinematicId, onDone, opts) =>
+          engine.openCinematic(cinematicId, onDone, opts),
         combat: {
           getEncounterEnemyIds: (encounterId) =>
             engine.enemies
@@ -1594,12 +1595,31 @@ export class GameEngine {
    * another activity is running — the campaign then falls
    * through to the dialogue. `onDone` fires exactly once when
    * the cinematic ends, complete or skipped.
+   *
+   * Scoped carve-out (approved WS6): when `opts.storyMissionId`
+   * is given, the cinematic may play while that story mission —
+   * and only that mission — is active, and only on the dialogue
+   * objective that carries this cinematic. Every other active
+   * activity still refuses. Today exactly one objective can
+   * satisfy this (Lena's `talk-lena` in DEAD DROP).
    */
-  openCinematic(cinematicId: string, onDone: () => void): boolean {
+  openCinematic(
+    cinematicId: string,
+    onDone: () => void,
+    opts?: { storyMissionId?: string },
+  ): boolean {
     if (this.disposed) return false;
     if (this.cinematic.isActive()) return false;
     if (this.dialogue.isOpen()) return false;
-    if (this.getActiveActivity() !== 'none') return false;
+    if (this.getActiveActivity() !== 'none') {
+      const allowed =
+        opts?.storyMissionId !== undefined &&
+        this.getActiveActivity() === 'story' &&
+        this.story.getHudState().missionId === opts.storyMissionId &&
+        this.story.getCurrentObjective()?.type === 'dialogue' &&
+        this.story.getCurrentObjective()?.cinematicId === cinematicId;
+      if (!allowed) return false;
+    }
     const ok = this.cinematic.start(cinematicId);
     if (!ok) return false;
     this.cinematicOnDone = onDone;

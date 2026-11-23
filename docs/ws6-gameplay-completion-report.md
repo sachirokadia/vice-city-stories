@@ -74,10 +74,12 @@ instructions). The full code-verified detail stays in the WS5 document.
 ordinary input and report back (cash before/after, time, screenshots).
 Until she does, both stay BLOCKED. Nothing in WS6 simulates this.
 
-## 4. Lena cinematic — DEFERRED, approval gate (proposal below)
+## 4. Lena cinematic — IMPLEMENTED (approved 2026-11-23, verified, released)
 
-**Status: NOT implemented. Awaiting Sachi's explicit approval of the
-exact change below.**
+**Status: IMPLEMENTED and RELEASED — Sachi approved the exact change
+below on 2026-11-23 22:23 IST ("Yes, implement the Lena carve-out").
+The implementation is exactly the approved change: no other game code
+was touched. Full results in §17.**
 
 ### The problem (re-confirmed in the current code)
 
@@ -423,3 +425,103 @@ _TO BE FILLED after the live check._
 ## 16. Final commit
 
 _TO BE FILLED._
+
+## 17. Lena carve-out — implementation and verification (post-WS6 release)
+
+Sachi approved the exact change in §4 on 2026-11-23 22:23 IST ("Yes,
+implement the Lena carve-out"). Implemented on branch
+`ui/gta-vice-city-transformation`, the same evening. The diff is
+exactly the approved change — no other game code touched.
+
+**Diff:** `src/game/GameEngine.ts` (+26/−3) and
+`src/game/StoryCampaign.ts` (+44/−13), 54 insertions / 16 deletions
+total. `openCinematic` gained `opts?: { storyMissionId?: string }`
+with the four-condition carve-out; the campaign deps interface and
+wiring pass the opts through; the call site passes
+`{ storyMissionId: def.id }`; the handle gained
+`getCurrentObjective()` (interface + implementation, one line).
+
+**Build:** `npx tsc --noEmit` clean. Production build
+`index-C1GcIcyo.js`, 1,199.09 kB / gzip 327.08 kB (+280 B vs WS5).
+Preview on port 4173 restarted and curl-verified serving the new
+bundle.
+
+**Test harness:** `~/workspace/qa-shots/vcs-lena-carveout.mjs`
+(log `lena-carveout2.log`, shot `ui-ws6/lena-cine-carveout.png`).
+Save seeding + teleports + the engine debug handle, same techniques
+as the 3.2 fix verification. The mission advances only through real
+collect triggers and real dialogue completion — nothing forced.
+
+**Test 1 — Lena DEAD DROP end-to-end: PASS.** Seeded (chapters 1–2
+complete, cash 5,000): Milo cinematic plays on E at the accept
+(mission-start path, narration "The boardwalk. Three drops, three
+places, one kid who knows them all."), dialogue completes, mission
+active at drop-park. Drops collected at (−90, 60), (22, 40),
+(0, −165). At Lena (140, 30), pressing E while the mission is
+**active** opens `cine-lena-dead-drop`: shot 0 "Lena Ortiz. The
+boardwalk clinic patches up everyone the city knocks down.", shot 1
+"Three drops delivered. She has seen what the packages do to
+people." (screenshot). State during the cinematic: story `active`,
+mission `story-dead-drop`, objective `talk-lena`, `cinematicId`
+`cine-lena-dead-drop`. Esc skips to the `lena-dead-drop` dialogue;
+the dialogue completes the objective; the mission completes with
+cash 5,000 → **5,900** and flag `drops-collected` set.
+
+**Test 2 — other cinematics unaffected: PASS.** Lifecycle re-run on
+the new build (log `lena-lifecycle.log`): all 7 cinematics start,
+go active, skip and exit cleanly (`stillActive: false`), console
+`[]`. The mission-start path (state `available` → activity `none` →
+unchanged branch) was exercised end-to-end by the Milo accept in
+Test 1. The staged-actor matrix is unchanged from §6 — the change
+touches only the guard, not staging.
+
+**Test 3 — job active still refuses: PASS.** With BEACON RUN active
+(activity `job`), all four calls return `false`: no opts, right
+mission id with no story active, wrong mission id, and a different
+cinematic with no opts. Control: with no activity, direct play of
+`cine-tail-spin` returns `true`.
+
+**Test 4 — no double-play: PASS.** A second `openCinematic` call
+while the Lena cinematic is active returns `false`. After the
+mission completes, pressing E at Lena starts nothing. Mechanism
+unchanged: `cinematicPlayedRun.add` happens before the attempt, so
+even a refused attempt is marked played for the run.
+
+**Test 5 — skip + Esc restore control: PASS.** Esc during the Lena
+cinematic ends it, the dialogue opens, the mission continues to
+completion and the $900 reward pays exactly once.
+
+**Test 6 — save/load + checkpoint retry: PASS (with one pre-existing
+finding, below).** `retryFromCheckpoint()` at the drop-garage
+checkpoint returns `true`; the garage and tower drops re-collect;
+the carve-out works after the retry. Reloading at `talk-lena`
+restarts the mission at objective 0 with cash intact — **that is the
+pre-existing save design, not a regression**: `StoryProgress.ts`
+stores chapters, mission completions, flags, the current mission
+pointer and the ending, but no in-progress run state
+(objectiveIndex / checkpoint). Mid-mission resume does not exist in
+this game; it was out of scope for the approved change and was NOT
+added. After the reload the mission re-runs cleanly from the start
+and the carve-out verifies again. Recorded here so a future
+workstream can pick it up if Sachi wants mid-mission resume.
+
+**Harness notes (not defects):** (a) After `retryFromCheckpoint`
+the state read objective 4, not 3 — the player was still standing
+at the garage, so the collect re-fired immediately on re-entry.
+(b) Two `waitDlgNode` polls (Milo o1, Lena l1, post-reload runs)
+returned `false` inside their 30 s windows, but the dialogues
+demonstrably opened and completed — the objectives advance only
+through their dialogue end events, and both missions completed
+with the correct cash. Slow dialogue opening in the 1–4 FPS
+headless renderer, not a game issue. (c) The script's own "FAIL:
+wrong Lena narration" line is a check bug: it compared the shot-0
+narration against the shot-1 line; shot 1 carries exactly the
+expected line.
+
+**Console errors:** `[]` in every Lena run (carve-out run 1, run 2,
+lifecycle re-run). No PAGEERROR.
+
+**Test 7 — qa81 on the new build:** _TO BE FILLED after the qa81 run._
+
+**Release:** _TO BE FILLED after the checkpoint commit, merge, deploy
+and live check._
