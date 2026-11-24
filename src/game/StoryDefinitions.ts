@@ -306,7 +306,11 @@ export const TAIL_SPIN: StoryMissionDef = {
       id: 'enter-car',
       type: 'enterVehicle',
       text: 'Get in a car',
-      target: { x: 0, z: -2 },
+      // WS7: the trigger accepts any car, anywhere — the old
+      // spawn target (0, -2) sent the player back to spawn for
+      // no reason. The marker now stays at Vic, where the player
+      // already is.
+      target: { x: 62.5, z: -150 },
       radius: 3.6,
     },
     {
