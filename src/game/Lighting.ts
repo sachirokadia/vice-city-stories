@@ -36,9 +36,13 @@ function makeCloudTexture(track: <T extends { dispose(): void }>(r: T) => T): TH
   ];
   for (const [x, y, r] of blobs) {
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, 'rgba(255, 236, 220, 0.85)');
-    g.addColorStop(0.7, 'rgba(255, 220, 200, 0.4)');
-    g.addColorStop(1, 'rgba(255, 220, 200, 0)');
+    // WS7 Phase 7: the peach tint (255,236,220) was nearly the sky's
+    // own colour, so the clouds washed out to a faint smudge at
+    // street level. Near-white cores read as cloud against the
+    // orange sunset while keeping the warm edge fade.
+    g.addColorStop(0, 'rgba(255, 250, 244, 0.95)');
+    g.addColorStop(0.7, 'rgba(255, 240, 228, 0.6)');
+    g.addColorStop(1, 'rgba(255, 240, 228, 0)');
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -183,7 +187,8 @@ export function createLighting(scene: THREE.Scene, quality: QualitySettings): Li
     new THREE.MeshBasicMaterial({
       map: makeCloudTexture(track),
       transparent: true,
-      opacity: 0.62,
+      // WS7 Phase 7: 0.62 was too faint against the sunset sky.
+      opacity: 0.8,
       depthWrite: false,
       fog: false,
     }),
@@ -202,7 +207,11 @@ export function createLighting(scene: THREE.Scene, quality: QualitySettings): Li
   for (let i = 0; i < cloudCount; i++) {
     const s = {
       x: -350 + cloudRand() * 700,
-      y: 85 + cloudRand() * 75,
+      // WS7 Phase 7: band lowered 85-160 -> 70-130 so more of each
+      // cloud sits inside the street camera's sky band (which tops
+      // out ~19 deg above horizontal); the old band mostly flew
+      // above the frame from street level.
+      y: 70 + cloudRand() * 60,
       z: -350 + cloudRand() * 700,
       w: 110 + cloudRand() * 80,
       h: 40 + cloudRand() * 28,

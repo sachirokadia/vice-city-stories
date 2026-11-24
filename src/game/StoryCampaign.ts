@@ -64,6 +64,7 @@ import {
   isCheckpointValid,
   takeCheckpoint,
 } from './StoryTriggers';
+import { heatForWantedLevel } from './Wanted';
 import {
   STORY_MISSIONS,
   storyChapterById,
@@ -106,6 +107,15 @@ export interface StoryCampaignDeps {
     driving: boolean;
     heading: number;
   }) => void;
+  /**
+   * Set the wanted heat directly (WS7). The engine guards it
+   * with the player's wanted toggle, exactly like the dialogue
+   * 'setWanted' event. Used by checkpoint restore (re-apply the
+   * snapshot's wanted level) and by retry/replay (re-apply the
+   * mission's startHeat, which the accept path would otherwise
+   * never re-apply — the 2.4 busted-retry bypass).
+   */
+  setWanted: (heat: number) => void;
   /**
    * Open a dialogue (9C). Returns false when the dialogue
    * cannot start — the campaign then falls back to the 9B
@@ -200,6 +210,9 @@ export interface StoryCampaignHandle {
   retry: () => void;
   /** Restore the latest checkpoint (false when there is none). */
   retryFromCheckpoint: () => boolean;
+  /** WS7: resume from the persisted checkpoint after a reload
+   * (false when there is no usable snapshot). */
+  restoreSavedCheckpoint: () => boolean;
   replay: () => void;
   continueAfterComplete: () => void;
   dismissFailed: () => void;
@@ -503,6 +516,7 @@ export function createStoryCampaign(
       : { x: ctx.playerPos.x, z: ctx.playerPos.z };
     const heading = ctx.driving ? ctx.vehicleHeading : ctx.camYaw;
     checkpoint = takeCheckpoint(
+      def.id,
       objectiveIndex,
       pos,
       heading,
@@ -515,7 +529,19 @@ export function createStoryCampaign(
       collectedIds,
       defeatedIds,
       progress.flags,
+      ctx.wantedLevel,
+      runTime,
+      // WS7 fix (2026-11-24): a checkpoint taken while replaying an
+      // already-completed mission must restore after a reload —
+      // without the flag the restore guard below refused it as a
+      // stale snapshot for a finished mission.
+      progress.missions[def.id]?.completed === true,
     );
+    // WS7: persist the snapshot so a reload mid-mission resumes
+    // here. One write, on the story save's single write path —
+    // old saves (no checkpoint field) are unaffected.
+    progress.checkpoint = checkpoint;
+    saveStoryProgress(progress);
   };
 
   /** Advance past the current objective, taking a checkpoint if
@@ -601,6 +627,9 @@ export function createStoryCampaign(
         }
       }
     }
+    // WS7: the run is over — the persisted checkpoint must not
+    // survive it, or a later reload would resurrect this run.
+    progress.checkpoint = null;
     saveStoryProgress(progress);
     resetCombatState();
     marker.group.visible = false;
@@ -615,19 +644,34 @@ export function createStoryCampaign(
     resetCombatState();
     marker.group.visible = false;
     for (const prop of collectProps.values()) prop.visible = false;
+    // WS7: the persisted checkpoint is deliberately NOT cleared
+    // here. The fail screen offers retry-from-checkpoint, and a
+    // reload from that screen must still resume at the
+    // checkpoint. Every exit from 'failed' (retry / replay /
+    // dismissFailed / selectMission) clears it instead.
   };
 
   /** Restore a checkpoint: state, objective, timer, collected
-   * items, flags and position — but never the reward. The
-   * combat state is torn down first, then the current
+   * items, flags, wanted level and position — but never the
+   * reward. The combat state is torn down first, then the current
    * objective re-enters fresh on the next tick (its encounter
-   * re-activates; earlier groups stay deactivated). */
+   * re-activates; earlier groups stay deactivated).
+   *
+   * WS7: the wanted level is restored from the snapshot, not
+   * left at whatever the live heat happens to be. Without this,
+   * a 2.4 retry after getting busted would land on the evade
+   * objective with heat already 0 (the engine resets heat on
+   * 'busted') and complete instantly — the same bypass the
+   * persisted resume would have had. The snapshot's level is
+   * the checkpoint's truth, in-session and after a reload.
+   * runTime is likewise restored, so bestTime still covers the
+   * whole run after a checkpoint retry. */
   const restoreCheckpoint = (): boolean => {
     if (!isCheckpointValid(checkpoint, def.objectives.length)) return false;
     const snap = checkpoint as StoryCheckpoint;
     objectiveIndex = snap.objectiveIndex;
     timeLeft = snap.timeLeft;
-    runTime = 0;
+    runTime = snap.runTime;
     flash = null;
     failedReason = null;
     collectedIds.clear();
@@ -635,6 +679,7 @@ export function createStoryCampaign(
     defeatedIds.clear();
     for (const id of snap.defeatedIds) defeatedIds.add(id);
     progress.flags = { ...snap.flags };
+    deps.setWanted(heatForWantedLevel(snap.wantedLevel));
     // Props for already-collected items stay hidden; the rest
     // come back.
     updateCollectProps();
@@ -671,6 +716,11 @@ export function createStoryCampaign(
     runTime = 0;
     flagsAtStart = { ...progress.flags };
     objectiveIndex += 1;
+    // WS7: a fresh run starts here — any persisted checkpoint
+    // from an earlier run must not survive it (the boundaries
+    // should already have cleared it; this is the backstop).
+    progress.checkpoint = null;
+    saveStoryProgress(progress);
     placeMarker();
   };
 
@@ -1143,6 +1193,9 @@ export function createStoryCampaign(
       cinematicPlayedRun.clear();
       enteredObjectiveId = '';
       checkpoint = null;
+      // WS7: abandoning the run clears the persisted checkpoint.
+      progress.checkpoint = null;
+      saveStoryProgress(progress);
       resetCombatState();
       placeMarker();
     },
@@ -1153,6 +1206,15 @@ export function createStoryCampaign(
       progress.flags = { ...flagsAtStart };
       state = 'active';
       resetRun();
+      // WS7: a fresh run starts here — clear the persisted
+      // checkpoint, and re-apply the mission's startHeat. The
+      // update loop skips the accept dialogue on a retry, so the
+      // accept path would otherwise never re-apply it: a 2.4
+      // retry after getting busted would otherwise reach the
+      // evade objective with heat 0 and complete instantly.
+      progress.checkpoint = null;
+      saveStoryProgress(progress);
+      if (def.startHeat !== undefined) deps.setWanted(def.startHeat);
     },
 
     retryFromCheckpoint(): boolean {
@@ -1160,10 +1222,81 @@ export function createStoryCampaign(
       return restoreCheckpoint();
     },
 
+    /**
+     * WS7: resume a run from the persisted checkpoint after a
+     * reload. Called once by the engine after the player enters
+     * the world. Returns false (and leaves everything exactly
+     * as a fresh boot) when there is no usable snapshot: the
+     * mission then starts at objective 0, as it always has.
+     * A snapshot that fails validation is cleared from the save
+     * so a corrupt snapshot is not retried on every boot.
+     * Never resumes mid-cinematic or mid-dialogue: snapshots
+     * are only ever taken at objective boundaries, and the
+     * restored objective is never an accept dialogue.
+     */
+    restoreSavedCheckpoint(): boolean {
+      if (state !== 'idle') return false;
+      const snap = progress.checkpoint;
+      if (!snap) return false;
+      const failClosed = (): boolean => {
+        progress.checkpoint = null;
+        saveStoryProgress(progress);
+        return false;
+      };
+      const missionDef = storyMissionById(snap.missionId);
+      if (!missionDef) return failClosed();
+      if (!isCheckpointValid(snap, missionDef.objectives.length))
+        return failClosed();
+      // The snapshot must belong to the mission the save says is
+      // current, and that mission must not already be complete —
+      // unless the snapshot was taken during a replay of it
+      // (WS7 fix, 2026-11-24: a replayed run's checkpoint was
+      // refused and deleted on reload because the mission read
+      // completed, so replays never resumed mid-run).
+      if (progress.current?.missionId !== snap.missionId) return failClosed();
+      if (
+        progress.missions[snap.missionId]?.completed === true &&
+        snap.replay !== true
+      )
+        return failClosed();
+      // The restored objective must not be an accept dialogue:
+      // the accept step is past by construction, and resuming
+      // onto it would re-run the accept (and its startHeat).
+      const target = missionDef.objectives[snap.objectiveIndex];
+      if (
+        target &&
+        (target.type === 'dialogue' || target.type === 'interact') &&
+        target.accept === true
+      )
+        return failClosed();
+      // Invariant (verified 2026-11-23): no mid-mission dialogue
+      // contains a giveCash event — the only one is Rook's k3a
+      // node in 2.3's accept dialogue, and 2.3 has no checkpoint.
+      // If a future mission adds one, this restore must refuse
+      // snapshots landing on that dialogue.
+      if (def.id !== snap.missionId) def = missionDef;
+      // WS7 FIX (verified 2026-11-24): restoreCheckpoint() reads
+      // the LIVE in-session checkpoint, which is null on a fresh
+      // boot — without this assignment every persisted resume
+      // failed validation here and failClosed() DELETED the
+      // snapshot it was supposed to restore. The persisted
+      // snapshot becomes the live checkpoint first.
+      checkpoint = snap;
+      const ok = restoreCheckpoint();
+      if (!ok) return failClosed();
+      setFlash('CHECKPOINT RESTORED');
+      return true;
+    },
+
     replay(): void {
       if (state !== 'complete' && state !== 'failed') return;
       state = 'active';
       resetRun();
+      // WS7: same as retry() — a fresh run, so clear the
+      // persisted checkpoint and re-apply the startHeat.
+      progress.checkpoint = null;
+      saveStoryProgress(progress);
+      if (def.startHeat !== undefined) deps.setWanted(def.startHeat);
     },
 
     continueAfterComplete(): void {
@@ -1173,6 +1306,9 @@ export function createStoryCampaign(
       timeLeft = def.timeLimit;
       enteredObjectiveId = '';
       cinematicPlayedRun.clear();
+      // WS7: leaving the complete screen ends the run.
+      progress.checkpoint = null;
+      saveStoryProgress(progress);
       placeMarker();
     },
 
@@ -1186,6 +1322,10 @@ export function createStoryCampaign(
       optionalDoneRun.clear();
       cinematicPlayedRun.clear();
       enteredObjectiveId = '';
+      // WS7: closing the fail screen without retrying ends the
+      // run — the persisted checkpoint goes with it.
+      progress.checkpoint = null;
+      saveStoryProgress(progress);
       resetCombatState();
       placeMarker();
     },
@@ -1203,6 +1343,9 @@ export function createStoryCampaign(
       if (!isStoryMissionUnlocked(id, progress)) return false;
       def = next;
       progress.current = { chapterId: def.chapterId, missionId: def.id };
+      // WS7: picking another mission ends any run — its
+      // persisted checkpoint goes with it.
+      progress.checkpoint = null;
       saveStoryProgress(progress);
       state = 'idle';
       objectiveIndex = 0;

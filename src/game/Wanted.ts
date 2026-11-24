@@ -80,6 +80,15 @@ const levelFromHeat = (heat: number): number => {
   return level;
 };
 
+/** Heat at which a wanted level starts (WS7: checkpoint restore
+ * re-applies the snapshot's wanted level as heat). */
+export function heatForWantedLevel(level: number): number {
+  if (!Number.isInteger(level)) return 0;
+  if (level <= 0) return LEVEL_HEAT[0];
+  if (level >= LEVEL_HEAT.length) return LEVEL_HEAT[LEVEL_HEAT.length - 1];
+  return LEVEL_HEAT[level];
+}
+
 const escapeDuration = (level: number): number => 14 + 4 * level;
 
 export function createWanted(): WantedHandle {

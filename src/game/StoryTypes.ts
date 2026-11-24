@@ -165,9 +165,17 @@ export type StoryFailReason =
 /**
  * A checkpoint snapshot: everything needed to resume a run
  * exactly where it was. Taken when an objective marked
- * `checkpoint: true` completes. Session-only — never persisted.
+ * `checkpoint: true` completes. WS7: the snapshot is also
+ * persisted on the v1 story save (an additive optional field),
+ * so a reload mid-mission resumes at the checkpoint instead of
+ * restarting the mission. `missionId` identifies the run the
+ * snapshot belongs to; `wantedLevel` is the wanted LEVEL (0-5,
+ * not heat) at the checkpoint, so an evade objective cannot
+ * auto-complete on resume; `runTime` is the elapsed run time,
+ * so bestTime still covers the whole run after a restore.
  */
 export interface StoryCheckpoint {
+  missionId: string;
   objectiveIndex: number;
   playerPos: { x: number; z: number };
   playerHeading: number;
@@ -181,6 +189,17 @@ export interface StoryCheckpoint {
   defeatedIds: string[];
   /** Campaign flags as they stood at the checkpoint. */
   flags: Record<string, boolean>;
+  /** Wanted level (0-5) at the checkpoint. */
+  wantedLevel: number;
+  /** Elapsed run time (seconds) at the checkpoint. */
+  runTime: number;
+  /** True when the snapshot was taken during a replay of an
+   * already-completed mission. A replayed run's checkpoint must
+   * still restore after a reload, even though the mission reads
+   * completed — without this flag the restore guard refused it
+   * (WS7 fix, 2026-11-24). Absent on pre-fix snapshots, which
+   * keep the old behaviour. */
+  replay?: boolean;
 }
 
 /** What persists for the campaign, under its own key. */
@@ -194,6 +213,12 @@ export interface StoryProgress {
   current: { chapterId: string; missionId: string } | null;
   flags: Record<string, boolean>;
   ending: 'mara' | 'june' | null;
+  /** WS7: latest checkpoint snapshot of the active run, or null.
+   * Absent on old saves — exactly today's behaviour. Cleared at
+   * every run boundary (complete / fail-exit / retry / replay /
+   * cancel / select / accept), so a stale snapshot can never
+   * resurrect an old run. */
+  checkpoint?: StoryCheckpoint | null;
 }
 
 /**

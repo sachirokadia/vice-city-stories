@@ -639,6 +639,12 @@ export class GameEngine {
         addCash: (amount) => engine.missions.addCash(amount),
         getCash: () => engine.missions.getCash(),
         teleport: (snap) => engine.teleportToCheckpoint(snap),
+        // WS7: checkpoint restore / retry re-applies wanted heat.
+        // Guarded by the player's wanted toggle, exactly like the
+        // dialogue 'setWanted' event.
+        setWanted: (heat) => {
+          if (engine.wantedEnabled) engine.wanted.setHeat(heat);
+        },
         openDialogue: (dialogueId) => engine.openDialogue(dialogueId),
         openCinematic: (cinematicId, onDone, opts) =>
           engine.openCinematic(cinematicId, onDone, opts),
@@ -1497,6 +1503,18 @@ export class GameEngine {
   /** Restart from the latest checkpoint (false when there is none). */
   retryStoryMissionFromCheckpoint(): boolean {
     const ok = this.story.retryFromCheckpoint();
+    if (ok) this.reportStory();
+    return ok;
+  }
+
+  /**
+   * WS7: resume the active run from the persisted checkpoint
+   * after a reload (false when there is no usable snapshot —
+   * the mission then starts at objective 0, as it always has).
+   * Called once by GameCanvas after engine.start().
+   */
+  restoreSavedStoryCheckpoint(): boolean {
+    const ok = this.story.restoreSavedCheckpoint();
     if (ok) this.reportStory();
     return ok;
   }

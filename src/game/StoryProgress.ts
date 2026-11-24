@@ -12,7 +12,8 @@
  *   missions: { [missionId]: { completed, optionalDone, bestTime } },
  *   current: { chapterId, missionId } | null,
  *   flags: { [flag]: boolean },
- *   ending: 'mara' | 'june' | null
+ *   ending: 'mara' | 'june' | null,
+ *   checkpoint: StoryCheckpoint | null, // WS7, optional — absent on old saves
  * }
  *
  * Loads are defensive (try/catch + validation, fall back to a
@@ -22,6 +23,7 @@
  */
 import { STORY_CHAPTERS, STORY_MISSIONS } from './StoryDefinitions';
 import type { StoryBoardState, StoryProgress } from './StoryTypes';
+import { isCheckpointValid } from './StoryTriggers';
 
 const PROGRESS_KEY = 'vice-city-stories.story.v1';
 
@@ -92,6 +94,32 @@ export function loadStoryProgress(): StoryProgress {
       if (parsed.ending === 'mara' || parsed.ending === 'june') {
         progress.ending = parsed.ending;
       }
+      // WS7: the persisted checkpoint, validated before it is
+      // trusted — a corrupt snapshot is dropped, never copied
+      // into the live progress. The mission-identity and
+      // not-completed checks live in restoreSavedCheckpoint,
+      // which knows the current mission; here only the snapshot's
+      // own shape is checked, against its own mission's length.
+      if (
+        parsed.checkpoint &&
+        typeof parsed.checkpoint === 'object' &&
+        typeof (parsed.checkpoint as { missionId?: unknown }).missionId ===
+          'string'
+      ) {
+        const cMission = STORY_MISSIONS.find(
+          (m) =>
+            m.id ===
+            (parsed.checkpoint as { missionId: string }).missionId,
+        );
+        if (
+          cMission &&
+          isCheckpointValid(parsed.checkpoint, cMission.objectives.length)
+        ) {
+          progress.checkpoint = parsed.checkpoint as NonNullable<
+            StoryProgress['checkpoint']
+          >;
+        }
+      }
       // Reconciliation (9E): a save written before Chapters 2–3
       // existed has no record for them — their fresh defaults
       // say locked. Derive the unlock from what the save
@@ -139,6 +167,7 @@ export function freshStoryProgress(): StoryProgress {
     current: null,
     flags: {},
     ending: null,
+    checkpoint: null,
   };
   // Chapter 1 is open from the start; later chapters unlock by
   // completing the previous chapter's final mission.

@@ -217,6 +217,9 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
       // Debug handle for automated checks (input state, position).
       (window as unknown as { __vcsEngine?: GameEngine }).__vcsEngine = engine;
       engine.start();
+      // WS7: a reload mid-mission resumes at the persisted
+      // checkpoint (no-op when there is no usable snapshot).
+      engine.restoreSavedStoryCheckpoint();
       setStarted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The 3D engine could not start.');
