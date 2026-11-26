@@ -7,6 +7,9 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { buildVehicleMesh } from '../game/Vehicle';
+import type { VehicleMesh } from '../game/Vehicle';
+import { installDetailedVehicle } from '../game/DetailedVehicle';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { VehicleSpec } from '../game/VehicleCatalog';
 
 interface VehiclePreviewProps {
@@ -16,6 +19,7 @@ interface VehiclePreviewProps {
 
 export default function VehiclePreview({ spec, paint }: VehiclePreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const meshRef = useRef<VehicleMesh | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -27,7 +31,13 @@ export default function VehiclePreview({ spec, paint }: VehiclePreviewProps) {
       powerPreference: 'low-power',
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
     const scene = new THREE.Scene();
+    const room = new RoomEnvironment(), pmrem = new THREE.PMREMGenerator(renderer);
+    const environment = pmrem.fromScene(room, .04);
+    scene.environment = environment.texture;
+    scene.environmentIntensity = .8;
+    room.dispose(); pmrem.dispose();
     scene.background = null;
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
     camera.position.set(6.2, 3.4, 6.8);
@@ -58,6 +68,8 @@ export default function VehiclePreview({ spec, paint }: VehiclePreviewProps) {
     scene.add(ring);
 
     const mesh = buildVehicleMesh(spec, paint);
+    meshRef.current = mesh;
+    const detailed = installDetailedVehicle(mesh.group, spec.id, mesh.paintMat, mesh.glassMat);
     scene.add(mesh.group);
 
     const resize = () => {
@@ -71,9 +83,12 @@ export default function VehiclePreview({ spec, paint }: VehiclePreviewProps) {
     window.addEventListener('resize', resize);
 
     let raf = 0;
-    const loop = () => {
+    let lastFrame = 0;
+    const loop = (time: number) => {
       raf = requestAnimationFrame(loop);
-      mesh.group.rotation.y += 0.008;
+      if (document.hidden || time - lastFrame < 33) return;
+      const dt = Math.min((time - lastFrame) / 1000, .1); lastFrame = time;
+      mesh.group.rotation.y += dt * .35;
       renderer.render(scene, camera);
     };
     raf = requestAnimationFrame(loop);
@@ -82,14 +97,21 @@ export default function VehiclePreview({ spec, paint }: VehiclePreviewProps) {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
       scene.remove(mesh.group);
+      detailed.dispose();
       mesh.dispose();
+      meshRef.current = null;
+      environment.dispose();
       disc.geometry.dispose();
       (disc.material as THREE.Material).dispose();
       ring.geometry.dispose();
       (ring.material as THREE.Material).dispose();
       renderer.dispose();
     };
-  }, [spec, paint]);
+    // A paint change updates the shared paint material below, without reloading the model.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spec]);
+
+  useEffect(() => { meshRef.current?.paintMat.color.setHex(paint); }, [paint, spec]);
 
   return (
     <canvas

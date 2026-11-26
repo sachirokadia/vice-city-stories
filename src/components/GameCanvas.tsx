@@ -51,6 +51,7 @@ import type { CollectibleState } from '../game/Collectibles';
 import type { SprintHudState } from '../game/Sprint';
 
 interface GameCanvasProps {
+  startAtCoast?: boolean;
   settings: GameSettings;
   onSettingsChange: (next: GameSettings) => void;
   onExitToMenu: () => void;
@@ -65,12 +66,13 @@ const IS_TOUCH =
  * this component only mounts the canvas, wires the engine's
  * lifecycle to React's, and renders the overlay UI.
  */
-export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }: GameCanvasProps) {
+export default function GameCanvas({ settings, onSettingsChange, onExitToMenu, startAtCoast = false }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [fps, setFps] = useState(0);
   const [quality, setQuality] = useState<QualitySettings | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [assetMessage, setAssetMessage] = useState('Loading coastal buildings…');
   const [paused, setPaused] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [started, setStarted] = useState(false);
@@ -174,8 +176,10 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     const canvas = canvasRef.current;
     if (!canvas) return;
     let engine: GameEngine | null = null;
+    let cancelled = false;
     try {
       engine = GameEngine.create(canvas, settings, {
+        onWorldAssets: s => { if (!cancelled) setAssetMessage(s.loaded + s.failed === s.total ? 'Loading characters and vehicles…' : `Loading coastal buildings — ${s.loaded + s.failed} of ${s.total}`); },
         onReady: (q) => setQuality(q),
         onFps: (f) => setFps(f),
         onQualityChange: (q) => setQuality({ ...q }),
@@ -216,11 +220,14 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
       engineRef.current = engine;
       // Debug handle for automated checks (input state, position).
       (window as unknown as { __vcsEngine?: GameEngine }).__vcsEngine = engine;
-      engine.start();
-      // WS7: a reload mid-mission resumes at the persisted
-      // checkpoint (no-op when there is no usable snapshot).
-      engine.restoreSavedStoryCheckpoint();
-      setStarted(true);
+      const activeEngine = engine;
+      void activeEngine.waitForWorldAssets().then(status => {
+        if (cancelled) return;
+        if (startAtCoast && status.failed) throw new Error('Some Ocean Drive models could not download. Please return to the menu and try again.');
+        if (startAtCoast) activeEngine.exploreOceanDrive();
+        else activeEngine.restoreSavedStoryCheckpoint();
+        activeEngine.start(); setStarted(true);
+      }).catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Model loading failed.'); });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The 3D engine could not start.');
     }
@@ -228,6 +235,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
     // StrictMode mounts twice in dev: the cleanup below disposes
     // the first engine before the second one starts.
     return () => {
+      cancelled = true;
       engine?.dispose();
       engineRef.current = null;
       delete (window as unknown as { __vcsEngine?: GameEngine }).__vcsEngine;
@@ -751,7 +759,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu }:
       {!started && !error && (
         <div className="game-starting">
           <div className="game-starting-spinner" aria-hidden="true" />
-          <p>Entering Vice City…</p>
+          <p>{assetMessage}</p>
         </div>
       )}
 

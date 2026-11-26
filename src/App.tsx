@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import LoadingScreen from './components/LoadingScreen';
 import MainMenu from './components/MainMenu';
 import GameCanvas from './components/GameCanvas';
@@ -16,16 +16,14 @@ type Phase = 'loading' | 'menu' | 'playing';
  */
 export default function App() {
   const [phase, setPhase] = useState<Phase>('loading');
+  const [coastalEntry, setCoastalEntry] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('Starting up…');
   const [quality, setQuality] = useState<QualitySettings | null>(null);
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
   const [loadError, setLoadError] = useState<string | null>(null);
-  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
     let cancelled = false;
 
     const run = async () => {
@@ -67,7 +65,8 @@ export default function App() {
     };
   }, []);
 
-  const play = useCallback(() => setPhase('playing'), []);
+  const play = useCallback(() => { setCoastalEntry(false); setPhase('playing'); }, []);
+  const exploreCoast = useCallback(() => { setCoastalEntry(true); setPhase('playing'); }, []);
   const toMenu = useCallback(() => setPhase('menu'), []);
   const changeSettings = useCallback((next: GameSettings) => {
     setSettings(next);
@@ -101,6 +100,7 @@ export default function App() {
         settings={settings}
         onSettingsChange={changeSettings}
         onPlay={play}
+        onExploreCoast={exploreCoast}
       />
     );
   }
@@ -108,6 +108,7 @@ export default function App() {
   return (
     <GameCanvas
       key="game"
+      startAtCoast={coastalEntry}
       settings={settings}
       onSettingsChange={changeSettings}
       onExitToMenu={toMenu}

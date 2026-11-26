@@ -1,0 +1,145 @@
+{
+  "version": "Fleet V3",
+  "units": "metres",
+  "models": [
+    {
+      "id": "velocity-gt",
+      "model": "velocity-gt-detailed-v3",
+      "name": "Velocity GT",
+      "triangles": 102052,
+      "meshes": 32,
+      "dimensions": [
+        2.26,
+        1.345,
+        4.681
+      ],
+      "features": [
+        "sports coupe body",
+        "visible cabin",
+        "independent wheels",
+        "compound-curved panels",
+        "curved glazing",
+        "rounded edge profiles"
+      ],
+      "glb": "models/velocity-gt-detailed-v3.glb"
+    },
+    {
+      "id": "shadow-lx",
+      "model": "shadow-lx-detailed-v3",
+      "name": "Shadow LX",
+      "triangles": 110804,
+      "meshes": 38,
+      "dimensions": [
+        2.26,
+        1.515,
+        5.321
+      ],
+      "features": [
+        "four-door body",
+        "raised cabin",
+        "rear seating",
+        "chrome beltline",
+        "independent wheels",
+        "compound-curved panels",
+        "curved glazing",
+        "rounded edge profiles"
+      ],
+      "glb": "models/shadow-lx-detailed-v3.glb"
+    },
+    {
+      "id": "vortex-rs",
+      "model": "vortex-rs-detailed-v3",
+      "name": "Vortex RS",
+      "triangles": 110432,
+      "meshes": 36,
+      "dimensions": [
+        2.407,
+        1.345,
+        4.74
+      ],
+      "features": [
+        "widebody arches",
+        "carbon skirts",
+        "air extractors",
+        "track rear wing",
+        "independent wheels",
+        "compound-curved panels",
+        "curved glazing",
+        "rounded edge profiles"
+      ],
+      "glb": "models/vortex-rs-detailed-v3.glb"
+    },
+    {
+      "id": "trailhawk-x",
+      "model": "trailhawk-x-detailed-v3",
+      "name": "Trailhawk X",
+      "triangles": 107384,
+      "meshes": 33,
+      "dimensions": [
+        2.38,
+        2.039,
+        4.756
+      ],
+      "features": [
+        "curved wheel arches",
+        "separate transparent windows",
+        "four-seat cabin",
+        "roof rails",
+        "running boards",
+        "independent wheels",
+        "compound-curved panels",
+        "curved glazing",
+        "rounded edge profiles"
+      ],
+      "glb": "models/trailhawk-x-detailed-v3.glb"
+    },
+    {
+      "id": "police-sedan",
+      "model": "police-sedan-detailed-v3",
+      "name": "Police Patrol Sedan",
+      "triangles": 116788,
+      "meshes": 43,
+      "dimensions": [
+        2.26,
+        1.763,
+        5.434
+      ],
+      "features": [
+        "black-and-white livery",
+        "police door markings",
+        "red-blue emergency bar",
+        "push bar",
+        "visible cabin",
+        "independent wheels",
+        "compound-curved panels",
+        "curved glazing",
+        "rounded edge profiles"
+      ],
+      "glb": "models/police-sedan-detailed-v3.glb"
+    },
+    {
+      "id": "police-suv",
+      "model": "police-suv-detailed-v3",
+      "name": "Police Patrol SUV",
+      "triangles": 113368,
+      "meshes": 38,
+      "dimensions": [
+        2.38,
+        2.162,
+        4.819
+      ],
+      "features": [
+        "black-and-white livery",
+        "police door markings",
+        "red-blue emergency bar",
+        "push bar",
+        "visible cabin",
+        "independent wheels",
+        "compound-curved panels",
+        "curved glazing",
+        "rounded edge profiles"
+      ],
+      "glb": "models/police-suv-detailed-v3.glb"
+    }
+  ]
+}

@@ -12,6 +12,8 @@
 import * as THREE from 'three';
 import { buildWorld } from './World';
 import type { WorldHandle } from './World';
+import type { CoastalLoadStatus } from './CoastalDistrict';
+import { OCEAN_DRIVE_ENTRY, OCEAN_DRIVE_PARKING } from './CoastalDistrictLayout';
 import { createLighting } from './Lighting';
 import type { LightingHandle } from './Lighting';
 import { createPlayer } from './Player';
@@ -156,6 +158,7 @@ export interface DriveHudState {
 }
 
 export interface EngineCallbacks {
+  onWorldAssets?: (status: CoastalLoadStatus) => void;
   onReady?: (quality: QualitySettings) => void;
   onFps?: (fps: number) => void;
   onQualityChange?: (quality: QualitySettings) => void;
@@ -496,7 +499,7 @@ export class GameEngine {
         engine.envMapMs = performance.now() - t0;
         pmrem.dispose();
       }
-      engine.worldHandle = buildWorld(engine.scene, quality);
+      engine.worldHandle = buildWorld(engine.scene, quality, cb.onWorldAssets);
       // G1.2 Stage 1 — one static downtown reflection probe (128²),
       // baked once at boot from the static city + sky. It runs here,
       // right after buildWorld, because the scene holds only the
@@ -798,6 +801,30 @@ export class GameEngine {
     return engine;
   }
 
+  async waitForWorldAssets(): Promise<CoastalLoadStatus> {
+    const world = this.worldHandle;
+    const [status] = await Promise.all([world.ready, this.vehicle.visualReady, this.player.visualReady, this.police.visualReady]);
+    if (!this.disposed && this.worldHandle === world) this.renderer.shadowMap.needsUpdate = true;
+    return status;
+  }
+
+  /** A free-roam entry point; does not overwrite saved story checkpoints. */
+  exploreOceanDrive(): void {
+    if (this.disposed) return;
+    this.teleportToCheckpoint({ playerPos: OCEAN_DRIVE_ENTRY, vehiclePos: null, driving: false, heading: Math.PI / 2 });
+    this.player.mesh.rotation.y = -Math.PI / 2;
+    this.player.mesh.visible = true;
+    this.vehicle.position.set(OCEAN_DRIVE_PARKING.x, 0, OCEAN_DRIVE_PARKING.z);
+    this.vehicle.group.position.copy(this.vehicle.position);
+    this.vehicle.heading = OCEAN_DRIVE_PARKING.heading;
+    this.vehicle.group.rotation.y = this.vehicle.heading;
+    this.vehicle.stop(); this.prevPlayerPos.copy(this.player.position);
+    this.lastShadowAnchor.copy(this.player.position);
+    this.camera.position.set(this.player.position.x + 7, 3.3, this.player.position.z + 4);
+    this.updateCamera(1); this.renderer.shadowMap.needsUpdate = true;
+    this.reportDriveHud();
+  }
+
   start(): void {
     if (this.running || this.disposed) return;
     // Inputs pressed while the engine was stopped (a panel open,
@@ -885,7 +912,8 @@ export class GameEngine {
       this.scene.fog.near = next.fogNear;
       this.scene.fog.far = next.fogFar;
     }
-    this.worldHandle = buildWorld(this.scene, this.quality);
+    this.worldHandle = buildWorld(this.scene, this.quality, this.cb.onWorldAssets);
+    void this.waitForWorldAssets();
     // The range survives a rebuild (it lives on the scene), but the
     // fresh collision list does not carry its boxes — re-add them
     // before the player is created against that list.
@@ -1801,6 +1829,7 @@ export class GameEngine {
       spec,
       paint: paintFor(this.garage, spec),
       upgrades: upgradesFor(this.garage, spec.id),
+      onVisualReady: () => { if (!this.disposed) this.renderer.shadowMap.needsUpdate = true; },
     });
   }
 

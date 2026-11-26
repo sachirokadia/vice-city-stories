@@ -1,7 +1,7 @@
 {
   "source": "sachirokadia/vice-city-stories",
   "sourceCommit": "dc36c0bfdc6606747090b8f94f049a5d2455140c",
-  "status": "World V2 asset study; Unity runtime integration pending.",
+  "status": "World V2 buildings, Fleet V3 vehicles and V3 characters integrated in the browser game; Unity integration pending.",
   "models": [
     {
       "id": "ocean-view-v2",
@@ -81,7 +81,7 @@
     },
     {
       "id": "coastal-infrastructure-v2",
-      "name": "Ocean Drive \u00b7 Road and Waterfront",
+      "name": "Ocean Drive · Road and Waterfront",
       "kind": "Environment",
       "status": "World V2 asset study",
       "version": "World V2",
@@ -100,7 +100,7 @@
     },
     {
       "id": "ocean-drive-world-v2",
-      "name": "Ocean Drive \u00b7 Coastal World V2",
+      "name": "Ocean Drive · Coastal World V2",
       "kind": "Scene",
       "status": "World V2 asset study",
       "version": "World V2",
@@ -119,7 +119,7 @@
     },
     {
       "id": "ocean-view-v2-lod1",
-      "name": "Ocean View \u00b7 LOD1",
+      "name": "Ocean View · LOD1",
       "kind": "Environment",
       "status": "World V2 asset study",
       "version": "World V2",
@@ -138,7 +138,7 @@
     },
     {
       "id": "harbor-exchange-v2-lod1",
-      "name": "Harbor Exchange \u00b7 LOD1",
+      "name": "Harbor Exchange · LOD1",
       "kind": "Environment",
       "status": "World V2 asset study",
       "version": "World V2",
@@ -157,7 +157,7 @@
     },
     {
       "id": "sunset-market-v2-lod1",
-      "name": "Sunset Market \u00b7 LOD1",
+      "name": "Sunset Market · LOD1",
       "kind": "Environment",
       "status": "World V2 asset study",
       "version": "World V2",
@@ -176,7 +176,7 @@
     },
     {
       "id": "marina-house-v2-lod1",
-      "name": "Marina House \u00b7 LOD1",
+      "name": "Marina House · LOD1",
       "kind": "Environment",
       "status": "World V2 asset study",
       "version": "World V2",
@@ -192,6 +192,108 @@
       "animations": [],
       "glb": "models/marina-house-v2-lod1.glb",
       "lod": true
+    },
+    {
+      "id": "velocity-gt-detailed-v3",
+      "name": "Velocity GT",
+      "kind": "Vehicle",
+      "version": "Fleet V3",
+      "status": "Curved fleet V3",
+      "triangles": 102052,
+      "meshes": 32,
+      "dimensions": [
+        2.26,
+        1.345,
+        4.681
+      ],
+      "glb": "models/velocity-gt-detailed-v3.glb",
+      "animations": [],
+      "description": "sports coupe body, visible cabin, independent wheels, compound-curved panels, curved glazing, rounded edge profiles"
+    },
+    {
+      "id": "shadow-lx-detailed-v3",
+      "name": "Shadow LX",
+      "kind": "Vehicle",
+      "version": "Fleet V3",
+      "status": "Curved fleet V3",
+      "triangles": 110804,
+      "meshes": 38,
+      "dimensions": [
+        2.26,
+        1.515,
+        5.321
+      ],
+      "glb": "models/shadow-lx-detailed-v3.glb",
+      "animations": [],
+      "description": "four-door body, raised cabin, rear seating, chrome beltline, independent wheels, compound-curved panels, curved glazing, rounded edge profiles"
+    },
+    {
+      "id": "vortex-rs-detailed-v3",
+      "name": "Vortex RS",
+      "kind": "Vehicle",
+      "version": "Fleet V3",
+      "status": "Curved fleet V3",
+      "triangles": 110432,
+      "meshes": 36,
+      "dimensions": [
+        2.407,
+        1.345,
+        4.74
+      ],
+      "glb": "models/vortex-rs-detailed-v3.glb",
+      "animations": [],
+      "description": "widebody arches, carbon skirts, air extractors, track rear wing, independent wheels, compound-curved panels, curved glazing, rounded edge profiles"
+    },
+    {
+      "id": "trailhawk-x-detailed-v3",
+      "name": "Trailhawk X",
+      "kind": "Vehicle",
+      "version": "Fleet V3",
+      "status": "Curved fleet V3",
+      "triangles": 107384,
+      "meshes": 33,
+      "dimensions": [
+        2.38,
+        2.039,
+        4.756
+      ],
+      "glb": "models/trailhawk-x-detailed-v3.glb",
+      "animations": [],
+      "description": "curved wheel arches, separate transparent windows, four-seat cabin, roof rails, running boards, independent wheels, compound-curved panels, curved glazing, rounded edge profiles"
+    },
+    {
+      "id": "police-sedan-detailed-v3",
+      "name": "Police Patrol Sedan",
+      "kind": "Vehicle",
+      "version": "Fleet V3",
+      "status": "Curved fleet V3",
+      "triangles": 116788,
+      "meshes": 43,
+      "dimensions": [
+        2.26,
+        1.763,
+        5.434
+      ],
+      "glb": "models/police-sedan-detailed-v3.glb",
+      "animations": [],
+      "description": "black-and-white livery, police door markings, red-blue emergency bar, push bar, visible cabin, independent wheels, compound-curved panels, curved glazing, rounded edge profiles"
+    },
+    {
+      "id": "police-suv-detailed-v3",
+      "name": "Police Patrol SUV",
+      "kind": "Vehicle",
+      "version": "Fleet V3",
+      "status": "Curved fleet V3",
+      "triangles": 113368,
+      "meshes": 38,
+      "dimensions": [
+        2.38,
+        2.162,
+        4.819
+      ],
+      "glb": "models/police-suv-detailed-v3.glb",
+      "animations": [],
+      "description": "black-and-white livery, police door markings, red-blue emergency bar, push bar, visible cabin, independent wheels, compound-curved panels, curved glazing, rounded edge profiles"
     }
   ]
 }

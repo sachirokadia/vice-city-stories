@@ -25,10 +25,12 @@ import type { VehicleSpec } from './VehicleCatalog';
 import { VEHICLE_SPECS, VELOCITY_GT_ID } from './VehicleCatalog';
 import type { EffectiveStats, VehicleUpgrades } from './GarageProgress';
 import { effectiveStats, emptyUpgrades } from './GarageProgress';
+import { installDetailedVehicle } from './DetailedVehicle';
 
 export type Gear = 'R' | 'N' | 'D';
 
 export interface VehicleHandle {
+  visualReady: Promise<void>;
   group: THREE.Group;
   name: string;
   /** Spec id (e.g. 'velocity-gt') — the display name is `name`. */
@@ -56,6 +58,7 @@ export interface VehicleHandle {
 }
 
 export interface VehicleOptions {
+  onVisualReady?: () => void;
   spec?: VehicleSpec;
   /** Paint hex; defaults to the spec's factory colour. */
   paint?: number;
@@ -550,6 +553,7 @@ export function createVehicle(
   const upgrades = options.upgrades ?? emptyUpgrades();
   const mesh = buildVehicleMesh(spec, paint);
   const { group, spinGroups, steerPivots } = mesh;
+  const detailed = installDetailedVehicle(group, spec.id, mesh.paintMat, mesh.glassMat, options.onVisualReady);
 
   scene.add(group);
   const pos = new THREE.Vector3(position.x, 0, position.z);
@@ -561,6 +565,7 @@ export function createVehicle(
   let tuning: EffectiveStats = effectiveStats(spec, upgrades);
   let speed = 0;
   let steer = 0;
+  let collisionRadius = CAR_RADIUS;
 
   // Reused scratch vectors: the collision path allocates nothing.
   const axleVec = new THREE.Vector3();
@@ -574,10 +579,10 @@ export function createVehicle(
       const dx = c.x - cx;
       const dz = c.z - cz;
       const distSq = dx * dx + dz * dz;
-      if (distSq >= CAR_RADIUS * CAR_RADIUS) continue;
+      if (distSq >= collisionRadius * collisionRadius) continue;
       if (distSq > 1e-6) {
         const dist = Math.sqrt(distSq);
-        return pushVec.set(cx + (dx / dist) * CAR_RADIUS - c.x, 0, cz + (dz / dist) * CAR_RADIUS - c.z);
+        return pushVec.set(cx + (dx / dist) * collisionRadius - c.x, 0, cz + (dz / dist) * collisionRadius - c.z);
       }
       // Centre inside the box: push out along the smallest penetration.
       const pushLeft = c.x - b.minX;
@@ -585,15 +590,16 @@ export function createVehicle(
       const pushUp = c.z - b.minZ;
       const pushDown = b.maxZ - c.z;
       const min = Math.min(pushLeft, pushRight, pushUp, pushDown);
-      if (min === pushLeft) return pushVec.set(b.minX - CAR_RADIUS - c.x, 0, 0);
-      if (min === pushRight) return pushVec.set(b.maxX + CAR_RADIUS - c.x, 0, 0);
-      if (min === pushUp) return pushVec.set(0, 0, b.minZ - CAR_RADIUS - c.z);
-      return pushVec.set(0, 0, b.maxZ + CAR_RADIUS - c.z);
+      if (min === pushLeft) return pushVec.set(b.minX - collisionRadius - c.x, 0, 0);
+      if (min === pushRight) return pushVec.set(b.maxX + collisionRadius - c.x, 0, 0);
+      if (min === pushUp) return pushVec.set(0, 0, b.minZ - collisionRadius - c.z);
+      return pushVec.set(0, 0, b.maxZ + collisionRadius - c.z);
     }
     return null;
   };
 
   const handle: VehicleHandle = {
+    visualReady: detailed.ready,
     group,
     name: spec.name,
     id: spec.id,
@@ -643,8 +649,11 @@ export function createVehicle(
       // Two-circle collision (front + rear axle) — bumps slow the car.
       // Reused temp vectors: no allocation inside the hot loop.
       let hit = false;
+      const body = detailed.bounds();
+      collisionRadius = Math.max(CAR_RADIUS, body?.halfWidth ?? spec.width / 2);
+      const axleOffset = Math.max(AXLE_OFFSET, (body?.halfLength ?? spec.length / 2) - collisionRadius);
       for (const s of [1, -1]) {
-        axleVec.set(pos.x + fx * AXLE_OFFSET * s, 0, pos.z + fz * AXLE_OFFSET * s);
+        axleVec.set(pos.x + fx * axleOffset * s, 0, pos.z + fz * axleOffset * s);
         const push = resolveCircle(axleVec, buildings);
         if (push) {
           pos.add(push);
@@ -666,6 +675,7 @@ export function createVehicle(
       for (const s of spinGroups) s.rotation.x += (speed * dt) / spec.wheelRadius;
       // Front wheels point where the car is turning: left = +rotation.
       for (const p of steerPivots) p.rotation.y = -steer;
+      detailed.update(speed * dt, spec.wheelRadius, steer);
       handle.speed = speed;
     },
     gear: () => (speed > 0.5 ? 'D' : speed < -0.5 ? 'R' : 'N'),
@@ -675,6 +685,7 @@ export function createVehicle(
       steer = 0;
       handle.speed = 0;
       for (const p of steerPivots) p.rotation.y = 0;
+      detailed.update(0, spec.wheelRadius, 0);
     },
     setSpeed: (v: number) => {
       speed = v;
@@ -688,6 +699,7 @@ export function createVehicle(
     },
     getTuning: () => ({ ...tuning }),
     dispose: () => {
+      detailed.dispose();
       scene.remove(group);
       mesh.dispose();
     },

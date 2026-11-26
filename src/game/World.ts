@@ -23,6 +23,9 @@ import { buildStreetProps } from './StreetProps';
 import { buildGarage } from './Garage';
 import { buildShop } from './Shop';
 import { GeometryBatch, composeMatrix } from './Merge';
+import { coastalCollisionBoxes, overlapsCoastalLot } from './CoastalDistrictLayout';
+import { installCoastalDistrict } from './CoastalDistrict';
+import type { CoastalLoadStatus } from './CoastalDistrict';
 
 export interface BuildingBox {
   minX: number;
@@ -35,6 +38,7 @@ export interface BuildingBox {
 }
 
 export interface WorldHandle {
+  ready: Promise<CoastalLoadStatus>;
   group: THREE.Group;
   /** Building footprints for kinematic collision (player circle vs box). */
   buildings: BuildingBox[];
@@ -80,7 +84,7 @@ function makeGroundTexture(track: Track): THREE.CanvasTexture {
   return tex;
 }
 
-export function buildWorld(scene: THREE.Scene, quality: QualitySettings): WorldHandle {
+export function buildWorld(scene: THREE.Scene, quality: QualitySettings, onAssets?: (status: CoastalLoadStatus) => void): WorldHandle {
   const group = new THREE.Group();
   group.name = 'vice-city';
   const disposables: Array<{ dispose: () => void }> = [];
@@ -90,6 +94,7 @@ export function buildWorld(scene: THREE.Scene, quality: QualitySettings): WorldH
   };
 
   const layout = generateLayout(quality);
+  layout.plots = layout.plots.filter(p => !overlapsCoastalLot(p.x, p.z, p.w, p.d));
   const rand = mulberry32(20261119);
 
   // ---- Base ground (under everything) ----
@@ -124,6 +129,8 @@ export function buildWorld(scene: THREE.Scene, quality: QualitySettings): WorldH
 
   // ---- The city itself, from the Phase 2 modules ----
   const { buildings } = buildBuildings(group, layout, quality, rand, track);
+  buildings.push(...coastalCollisionBoxes());
+  const coastalDistrict = installCoastalDistrict(group, quality, onAssets);
   const roads = buildRoads(group, layout, quality, track);
   buildVegetation(group, layout, quality, track);
   buildStreetProps(group, layout, quality, track);
@@ -168,6 +175,7 @@ export function buildWorld(scene: THREE.Scene, quality: QualitySettings): WorldH
   scene.add(group);
 
   return {
+    ready: coastalDistrict.ready,
     group,
     buildings,
     signals: roads.signals,
@@ -176,6 +184,7 @@ export function buildWorld(scene: THREE.Scene, quality: QualitySettings): WorldH
       roads.update?.(dt);
     },
     dispose: () => {
+      coastalDistrict.dispose();
       scene.remove(group);
       group.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {

@@ -1,0 +1,11 @@
+{
+  "source": "MakeHuman Community bundled CC0 assets",
+  "license": "CC0-1.0",
+  "repository": "https://github.com/makehumancommunity/makehuman/tree/v1.3.0",
+  "assetPack": "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+  "licensePage": "https://static.makehumancommunity.org/about/license.html",
+  "adaptation": "Character macro target, Catmull-Clark subdivision, fitted garments, normalized scale, skin-weight transfer and relaxed arm pose; original V1 character retained.",
+  "bones": 163,
+  "meshes": 8,
+  "refinement": "Adaptive conforming surface refinement, fine skin normal/roughness maps, refined hair and eye surfaces. Existing V2 geometry preserved."
+}

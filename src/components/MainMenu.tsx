@@ -27,6 +27,7 @@ interface MainMenuProps {
   settings: GameSettings;
   onSettingsChange: (next: GameSettings) => void;
   onPlay: () => void;
+  onExploreCoast: () => void;
 }
 
 type MenuPanel = 'none' | 'settings' | 'about' | 'missions' | 'story';
@@ -40,7 +41,7 @@ type MenuPanel = 'none' | 'settings' | 'about' | 'missions' | 'story';
  * game's description. Progress, cash and chapter are read live
  * from the same saves the game itself uses.
  */
-export default function MainMenu({ quality, settings, onSettingsChange, onPlay }: MainMenuProps) {
+export default function MainMenu({ quality, settings, onSettingsChange, onPlay, onExploreCoast }: MainMenuProps) {
   const [panel, setPanel] = useState<MenuPanel>('none');
   const [board, setBoard] = useState<MissionBoardState | null>(null);
   const [storyBoard, setStoryBoard] = useState<StoryBoardState | null>(null);
@@ -168,6 +169,10 @@ export default function MainMenu({ quality, settings, onSettingsChange, onPlay }
             className="menu-nav-button menu-nav-play"
           >
             Play
+          </VcButton>
+          <VcButton variant="secondary" size="md" icon="play" trailingIcon="chevron-right"
+            onClick={onExploreCoast} className="menu-nav-button">
+            Explore Ocean Drive
           </VcButton>
           <VcButton
             variant="secondary"

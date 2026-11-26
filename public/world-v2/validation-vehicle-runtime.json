@@ -1,0 +1,80 @@
+{
+  "passed": true,
+  "scope": "CPU tests of real exported GLBs and actual game vehicle/police modules; not an FPS or native browser-driving measurement.",
+  "results": [
+    {
+      "vehicle": "velocity-gt",
+      "triangles": 102052,
+      "wheels": 4,
+      "steeringWheels": 2,
+      "driving": true,
+      "collision": true,
+      "repaint": true,
+      "probeOwnership": true,
+      "cleanup": true
+    },
+    {
+      "vehicle": "shadow-lx",
+      "triangles": 110804,
+      "wheels": 4,
+      "steeringWheels": 2,
+      "driving": true,
+      "collision": true,
+      "repaint": true,
+      "probeOwnership": true,
+      "cleanup": true
+    },
+    {
+      "vehicle": "vortex-rs",
+      "triangles": 110432,
+      "wheels": 4,
+      "steeringWheels": 2,
+      "driving": true,
+      "collision": true,
+      "repaint": true,
+      "probeOwnership": true,
+      "cleanup": true
+    },
+    {
+      "vehicle": "trailhawk-x",
+      "triangles": 107384,
+      "wheels": 4,
+      "steeringWheels": 2,
+      "driving": true,
+      "collision": true,
+      "repaint": true,
+      "probeOwnership": true,
+      "cleanup": true
+    },
+    {
+      "check": "dispose-during-download",
+      "passed": true
+    },
+    {
+      "check": "police-sedan-and-suv",
+      "nearDetail": true,
+      "farLOD": true,
+      "alternatingLights": true,
+      "patrolDark": true,
+      "cleanup": true
+    },
+    {
+      "check": "police-existing-ai",
+      "patrol": true,
+      "pursuit": true,
+      "search": true,
+      "arrestTarget": true,
+      "reset": true,
+      "off": true
+    },
+    {
+      "check": "playable-and-story-character-rigs",
+      "kaiGait": true,
+      "outfitFallback": true,
+      "independentSkeletons": true,
+      "june": true,
+      "lena": true,
+      "cleanup": true
+    }
+  ]
+}

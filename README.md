@@ -14,16 +14,28 @@ npm run build      # production build (tsc + vite)
 npm run preview    # serve the production build → http://localhost:4173
 ```
 
-## World V2 asset study (26 November 2026)
+## Detailed world and vehicle fleet (26 November 2026)
 
-A researched coastal block, ten textured GLB assets, three actual mesh previews,
-and notes on 25 primary sources are included in `public/world-v2`. With the dev
-server running, open `/world-v2/world-v2.html` for the preview and research or
-`/world-v2/index.html?model=ocean-drive-world-v2` for model inspection.
-See [asset scope and integration status](docs/world-v2-research-and-assets.md)
-and [generation tools](tools/world-v2/README.md). The kit is ready for inspection;
-the campaign does not load these new assets yet, and Unity runtime integration
-remains pending.
+A researched coastal block, ten textured world GLBs and notes on 25 primary
+sources are included in `public/world-v2`. **Explore Ocean Drive** on the main
+menu starts free roam beside the four imported buildings and the active car.
+Normal Play also loads those buildings. Kai, June and Lena use the delivered
+V3 character models; alternate player outfits retain their original visuals.
+
+Four civilian cars and two police vehicles now use Fleet V3 models with curved
+panels, rounded trim, transparent glazing and independent wheel assemblies.
+Their budgets range from 102,052 to 116,788 triangles. Garage previews use the
+same models as the active car. Police use detailed instanced models within 85 m
+and the lighter original fleet beyond that distance. Vehicle ownership and
+campaign progression still apply.
+
+Open `/world-v2/fleet.html` for all six vehicle previews, a before/after GT
+comparison and GLB downloads; `/world-v2/world-v2.html` has the coastal study.
+See [scope and validation](docs/world-v2-research-and-assets.md) and
+[generation tools](tools/world-v2/README.md). Production compilation and actual
+game-module CPU checks pass. Current fleet GPU performance and Unity runtime
+integration remain unverified. Saved preview images are CPU renders of the
+delivered meshes, not game screenshots.
 
 ## What Phase 1 includes
 

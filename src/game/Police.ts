@@ -26,6 +26,7 @@ import { AVENUES, STREETS } from './PedestrianPaths';
 import type { BuildingBox } from './World';
 import { GeometryBatch, composeMatrix } from './Merge';
 import type { WantedStatus } from './Wanted';
+import { installDetailedPolice } from './DetailedPolice';
 
 export type PoliceChoice = 'off' | 'low' | 'normal' | 'high';
 export const POLICE_COUNTS: Record<PoliceChoice, number> = {
@@ -81,6 +82,7 @@ export interface NearestPursuer {
 }
 
 export interface PoliceHandle {
+  visualReady: Promise<void>;
   /** Returns true when any unit moved (shadow refresh hint). */
   update: (dt: number, ctx: PoliceContext) => boolean;
   setCount: (choice: PoliceChoice) => void;
@@ -130,16 +132,16 @@ const TRIM = 0x1a1a20;
 
 const SPECS: PoliceSpec[] = [
   {
-    key: 'sedan', length: 4.4, width: 1.9, bodyH: 0.55, bodyY: 0.45,
-    cabinL: 2.2, cabinW: 1.7, cabinH: 0.5, cabinY: 0.95, cabinZ: -0.2,
-    wheelR: 0.36, axle: 1.42, lightY: 0.5, lightBarY: 1.24,
+    key: 'sedan', length: 5.4, width: 1.96, bodyH: 0.55, bodyY: 0.45,
+    cabinL: 2.45, cabinW: 1.7, cabinH: 0.6, cabinY: 1.2, cabinZ: -0.2,
+    wheelR: 0.365, axle: 1.568, lightY: 0.57, lightBarY: 1.63,
     cruiseMin: 8, cruiseMax: 10,
     // extras are added in buildBodyGeometry below.
   },
   {
-    key: 'suv', length: 4.8, width: 2.0, bodyH: 0.7, bodyY: 0.55,
-    cabinL: 2.8, cabinW: 1.8, cabinH: 0.55, cabinY: 1.15, cabinZ: -0.1,
-    wheelR: 0.38, axle: 1.5, lightY: 0.6, lightBarY: 1.5,
+    key: 'suv', length: 4.8, width: 2.0, bodyH: 0.7, bodyY: 0.72,
+    cabinL: 2.8, cabinW: 1.8, cabinH: 0.9, cabinY: 1.5, cabinZ: -0.1,
+    wheelR: 0.463, axle: 1.4, lightY: 1.02, lightBarY: 2.03,
     cruiseMin: 7, cruiseMax: 9,
   },
 ];
@@ -214,6 +216,7 @@ export function createPolice(
   };
   const group = new THREE.Group();
   group.name = 'police';
+  const detailed = installDetailedPolice(group, MAX_UNITS);
   let diff: PursuitDifficulty = difficulty;
   let frame = 0;
   let seenThisFrame = false;
@@ -380,7 +383,8 @@ export function createPolice(
     return best;
   };
 
-  const zeroSlot = (slot: number): void => {
+  const zeroSlot = (slot: number, keepDetailed = false): void => {
+    if (!keepDetailed) detailed.hide(slot);
     zeroMat(_mA);
     for (const mesh of bodyMeshes) mesh.setMatrixAt(slot, _mA);
     for (let k = 0; k < 4; k++) {
@@ -842,6 +846,12 @@ export function createPolice(
       const spec = u.spec;
       const kindIdx = SPECS.indexOf(spec);
       if (!u.active) continue;
+      const anchor = ctx.driving ? ctx.vehiclePos : ctx.playerPos;
+      if (detailed.render({ slot: u.slot, kind: spec.key, x: u.x, z: u.z, heading: u.heading,
+        wheelSpin: u.wheelSpin, steer: u.steer, onDuty: u.state !== 'patrol', phase,
+        distance: Math.hypot(u.x - anchor.x, u.z - anchor.z) })) {
+        zeroSlot(u.slot, true); continue;
+      }
       _e.set(0, u.heading, 0, 'YXZ');
       _q.setFromEuler(_e);
       _v.set(u.x, 0, u.z);
@@ -915,10 +925,12 @@ export function createPolice(
     barMesh.instanceMatrix.needsUpdate = true;
     if (lightMesh.instanceColor) lightMesh.instanceColor.needsUpdate = true;
     if (barMesh.instanceColor) barMesh.instanceColor.needsUpdate = true;
+    detailed.flush();
     return moved;
   };
 
   return {
+    visualReady: detailed.ready,
     update,
     setCount: (nextChoice: PoliceChoice) => {
       targetCount = POLICE_COUNTS[nextChoice];
@@ -1022,6 +1034,7 @@ export function createPolice(
       }
     },
     dispose: () => {
+      detailed.dispose();
       scene.remove(group);
       group.traverse((obj) => {
         if (obj instanceof THREE.InstancedMesh) obj.dispose();

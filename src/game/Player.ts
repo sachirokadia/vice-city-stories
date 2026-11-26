@@ -17,8 +17,11 @@ import { createCharacter } from './Character';
 import { CharacterAnimation } from './CharacterAnimation';
 import { applyOutfit } from './Outfits';
 import type { OutfitDef } from './Outfits';
+import { DEFAULT_OUTFIT_ID } from './Outfits';
+import { installDetailedCharacter } from './DetailedCharacter';
 
 export interface PlayerHandle {
+  visualReady: Promise<void>;
   mesh: THREE.Group;
   update: (dt: number, cameraYaw: number, input: InputState) => void;
   position: THREE.Vector3;
@@ -51,6 +54,7 @@ export function createPlayer(
   };
   const { group, rig, mats, parts } = createCharacter(track);
   const animation = new CharacterAnimation(rig);
+  const detailed = installDetailedCharacter(group, rig, 'kai');
 
   scene.add(group);
 
@@ -98,6 +102,7 @@ export function createPlayer(
   };
 
   return {
+    visualReady: detailed.ready,
     mesh: group,
     position,
     setSurrendered: (next: boolean) => {
@@ -112,7 +117,10 @@ export function createPlayer(
       if (!next) currentSpeed = 0;
     },
     applyOutfit: (outfit: OutfitDef) => {
+      detailed.setEnabled(outfit.id === DEFAULT_OUTFIT_ID);
       applyOutfit(mats, parts, outfit);
+      // Alternate purchased outfits retain their original geometry and print support.
+      detailed.setEnabled(outfit.id === DEFAULT_OUTFIT_ID);
     },
     update: (dt: number, cameraYaw: number, input: InputState) => {
       // Downed: flat on the ground, input ignored, no pose.
@@ -127,6 +135,7 @@ export function createPlayer(
         currentSpeed = 0;
         prevPosition.copy(position);
         animation.updateSurrender(dt);
+        detailed.update();
         return;
       }
       const move = effectiveMove(input);
@@ -173,8 +182,10 @@ export function createPlayer(
         turnRate = dt > 0 ? applied / dt : 0;
       }
       animation.update(dt, actualSpeed, move.sprint, turnRate);
+      detailed.update();
     },
     dispose: () => {
+      detailed.dispose();
       scene.remove(group);
       for (const d of disposables) {
         try {

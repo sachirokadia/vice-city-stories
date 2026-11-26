@@ -13,11 +13,13 @@
  */
 import * as THREE from 'three';
 import { createCharacter } from './Character';
+import { installDetailedCharacter } from './DetailedCharacter';
 import type { CharacterRig } from './Character';
 import { CharacterAnimation } from './CharacterAnimation';
 import { storyCharacter } from './StoryCharacters';
 
 export interface StagedActor {
+  visualReady: Promise<void>;
   characterId: string;
   group: THREE.Group;
   /** Advance the animation (and any walk-to movement). */
@@ -52,6 +54,7 @@ export function createStagedActor(
   // Phase 1: the character's design (proportions, hair, clothing,
   // accessories) goes into the build; no design = the original rig.
   const { group, rig, mats } = createCharacter(track, info.design);
+  const detailed = installDetailedCharacter(group, rig, characterId);
   group.name = `staged-${characterId}`;
   // Recolour the shared rig with this character's palette.
   // Kai has no palette: he keeps the rig's defaults.
@@ -78,6 +81,7 @@ export function createStagedActor(
   let disposed = false;
 
   return {
+    visualReady: detailed.ready,
     characterId,
     group,
     update(dt: number): void {
@@ -89,6 +93,7 @@ export function createStagedActor(
         if (dist < 0.05) {
           walking = false;
           animation.update(dt, 0, false, 0);
+          detailed.update();
           return;
         }
         const step = Math.min(dist, speed * dt);
@@ -104,13 +109,16 @@ export function createStagedActor(
         group.rotation.y += applied;
         const actualSpeed = dt > 0 ? step / dt : 0;
         animation.update(dt, actualSpeed, false, dt > 0 ? applied / dt : 0);
+        detailed.update();
       } else {
         animation.update(dt, 0, false, 0);
+        detailed.update();
       }
     },
     dispose(): void {
       if (disposed) return;
       disposed = true;
+      detailed.dispose();
       scene.remove(group);
       for (const d of disposables) {
         try {
