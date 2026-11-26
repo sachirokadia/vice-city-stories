@@ -21,7 +21,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { RefObject } from 'react';
 import type { GameEngine } from '../game/GameEngine';
-import type { QualitySettings } from '../game/Quality';
 import { generateLayout } from '../game/CityGenerator';
 import {
   MAP_SIZE_MINI,
@@ -35,16 +34,13 @@ const S = MAP_SIZE_MINI;
 interface MinimapProps {
   /** Ref to the live engine (GameCanvas owns it). */
   engineRef: RefObject<GameEngine | null>;
-  /** Current quality tier — only used to build the layout (streets and
-   *  blocks are quality-independent; only building plots vary). */
-  quality: QualitySettings | null;
 }
 
-export default function Minimap({ engineRef, quality }: MinimapProps) {
+export default function Minimap({ engineRef }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // The exact layout the engine built the city from (deterministic seed).
-  const layout = useMemo(() => (quality ? generateLayout(quality) : null), [quality]);
+  const layout = useMemo(generateLayout, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -55,7 +51,6 @@ export default function Minimap({ engineRef, quality }: MinimapProps) {
     const draw = () => {
       // The city base is shared with the full-screen map (MapDraw) —
       // same layout, same coordinates, same colours.
-      if (!layout) return;
       drawCityBase(ctx, layout, S);
 
       // --- Player arrow (live position + heading) ---

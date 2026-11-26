@@ -41,9 +41,16 @@ export function buildRoads(
   quality: QualitySettings,
   track: Track,
 ): { update?: (dt: number) => void; signals: SignalState } {
-  const roadMat = track(new THREE.MeshStandardMaterial({ color: 0x1b1920, roughness: 0.95 }));
-  const walkMat = track(new THREE.MeshStandardMaterial({ color: 0x55505c, roughness: 0.95 }));
-  const curbMat = track(new THREE.MeshStandardMaterial({ color: 0x8a8494, roughness: 0.9 }));
+  const surface = (name: string, color: number) => {
+    const map = track(new THREE.TextureLoader().load(`${import.meta.env?.BASE_URL ?? '/'}world-v2/surfaces/${name}.jpg`));
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.anisotropy = 4;
+    return track(new THREE.MeshStandardMaterial({ color, map, roughness: .94 }));
+  };
+  const roadMat = surface('asphalt', 0xb6b6b4);
+  const walkMat = surface('pavers', 0xc9c4b8);
+  const curbMat = track(new THREE.MeshStandardMaterial({ color: 0xaaa496, roughness: .9 }));
   const edgeMat = track(new THREE.MeshStandardMaterial({ color: 0xd8d4cc, roughness: 0.8 }));
   const dashMat = track(new THREE.MeshStandardMaterial({ color: 0xf2b234, roughness: 0.8 }));
   const crossMat = track(new THREE.MeshStandardMaterial({ color: 0xe8e6e0, roughness: 0.8 }));
@@ -59,26 +66,49 @@ export function buildRoads(
     batch.add(roadGeo, composeMatrix(x, y, z, 0, w, l, 1, -Math.PI / 2));
   };
 
-  // --- Asphalt, sidewalks, curbs, edge lines ---------------------------
+  // Keep each intersection level and stop the curb before the crossing.
+  const curbGeo = track(new THREE.BoxGeometry());
+  const between = (streets: number[], halfGap: number, end: number) => {
+    const runs: Array<[number, number]> = [];
+    let cursor = -CITY_HALF;
+    for (const center of streets) {
+      runs.push([cursor, center - halfGap]);
+      cursor = center + halfGap;
+    }
+    if (cursor < end) runs.push([cursor, end]);
+    return runs;
+  };
+  const curb = (x: number, z: number, w: number, d: number) => {
+    curbBatch.add(curbGeo, composeMatrix(x, .037, z, 0, w, .065, d));
+  };
+  const avenueRuns = between(layout.streetsZ, 8, CITY_HALF);
+  const streetRuns = between(layout.streetsX, 8, 128);
   for (const sx of layout.streetsX) {
-    addPlane(roadBatch, 10, CITY_HALF * 2, sx, 0, 0.015);
-    addPlane(walkBatch, 3, CITY_HALF * 2, sx - 6.5, 0, 0.03);
-    addPlane(walkBatch, 3, CITY_HALF * 2, sx + 6.5, 0, 0.03);
-    addPlane(curbBatch, 0.4, CITY_HALF * 2, sx - 8.2, 0, 0.035);
-    addPlane(curbBatch, 0.4, CITY_HALF * 2, sx + 8.2, 0, 0.035);
-    addPlane(edgeBatch, 0.15, CITY_HALF * 2, sx - 4.6, 0, 0.04);
-    addPlane(edgeBatch, 0.15, CITY_HALF * 2, sx + 4.6, 0, 0.04);
+    addPlane(roadBatch, 10, CITY_HALF * 2, sx, 0, .015);
+    for (const [a, b] of avenueRuns) {
+      for (const side of [-1, 1]) {
+        addPlane(walkBatch, 2.85, b - a, sx + side * 6.57, (a + b) / 2, .061);
+        curb(sx + side * 5.08, (a + b) / 2, .18, b - a);
+        addPlane(edgeBatch, .11, b - a, sx + side * 4.62, (a + b) / 2, .031);
+      }
+    }
   }
-  // East-west streets: the plane's local X already runs along world X,
-  // so no extra rotation — just swap the width/length.
   for (const sz of layout.streetsZ) {
-    addPlane(roadBatch, CITY_HALF * 2, 10, 0, sz, 0.015);
-    addPlane(walkBatch, CITY_HALF * 2, 3, 0, sz - 6.5, 0.03);
-    addPlane(walkBatch, CITY_HALF * 2, 3, 0, sz + 6.5, 0.03);
-    addPlane(curbBatch, CITY_HALF * 2, 0.4, 0, sz - 8.2, 0.035);
-    addPlane(curbBatch, CITY_HALF * 2, 0.4, 0, sz + 8.2, 0.035);
-    addPlane(edgeBatch, CITY_HALF * 2, 0.15, 0, sz - 4.6, 0.04);
-    addPlane(edgeBatch, CITY_HALF * 2, 0.15, 0, sz + 4.6, 0.04);
+    for (const [a, b] of between(layout.streetsX, 5, 128)) {
+      addPlane(roadBatch, b - a, 10, (a + b) / 2, sz, .015);
+    }
+    for (const [a, b] of streetRuns) {
+      for (const side of [-1, 1]) {
+        addPlane(walkBatch, b - a, 2.85, (a + b) / 2, sz + side * 6.57, .061);
+        curb((a + b) / 2, sz + side * 5.08, b - a, .18);
+        addPlane(edgeBatch, b - a, .11, (a + b) / 2, sz + side * 4.62, .031);
+      }
+    }
+    for (const sx of layout.streetsX) {
+      for (const dx of [-6.57, 6.57]) for (const dz of [-6.57, 6.57]) {
+        addPlane(walkBatch, 2.85, 2.85, sx + dx, sz + dz, .061);
+      }
+    }
   }
   for (const [batch, mat] of [
     [roadBatch, roadMat],
@@ -88,6 +118,12 @@ export function buildRoads(
   ] as const) {
     const geo = batch.build();
     if (!geo) continue;
+    if (mat === roadMat || mat === walkMat) {
+      const tile = mat === roadMat ? 4.8 : 2.4;
+      const position = geo.attributes.position;
+      const uv = geo.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, position.getX(i) / tile, -position.getZ(i) / tile);
+    }
     const mesh = new THREE.Mesh(track(geo), mat);
     mesh.receiveShadow = true;
     group.add(mesh);
@@ -115,7 +151,7 @@ export function buildRoads(
     }
   }
   for (const sz of layout.streetsZ) {
-    for (let x = -CITY_HALF + 6; x < CITY_HALF - 6; x += 12) {
+    for (let x = -CITY_HALF + 6; x < 126; x += 12) {
       if (nearCross(x, layout.streetsX)) continue;
       dummy.position.set(x, 0.045, sz);
       dummy.rotation.set(0, 0, 0);
@@ -133,6 +169,21 @@ export function buildRoads(
     group.add(inst);
   }
 
+  const iron = track(new THREE.MeshStandardMaterial({ color: 0x414747, roughness: .89, metalness: .3 }));
+  const grateBatch = new GeometryBatch();
+  const grateGeo = track(new THREE.BoxGeometry());
+  const lid = track(new THREE.CylinderGeometry(.32, .32, .018, 18));
+  for (const x of layout.streetsX) for (const z of layout.streetsZ) {
+    const side = (x + z) % 120 === 0 ? -1 : 1;
+    for (let bar = -3; bar <= 3; bar++) {
+      grateBatch.add(grateGeo, composeMatrix(x + side * 4.8, .025, z + 10 + bar * .099, 0, .3, .018, .06));
+    }
+    grateBatch.add(lid, composeMatrix(x + .91 * side, .017, z + 13, 0, 1, 1, 1));
+  }
+  const fittings = new THREE.Mesh(track(grateBatch.build()!), iron);
+  fittings.receiveShadow = true;
+  group.add(fittings);
+
   // --- Crosswalks (instanced stripes at every intersection) ------------
   const crossXf: THREE.Matrix4[] = [];
   for (const sx of layout.streetsX) {
@@ -143,7 +194,7 @@ export function buildRoads(
         [-6.5, 0, false],
         [6.5, 0, false],
       ] as const) {
-        for (let i = -2; i <= 2; i++) {
+        for (let i = -3; i <= 3; i++) {
           dummy.position.set(sx + ox + (alongX ? i * 1.1 : 0), 0.05, sz + oz + (alongX ? 0 : i * 1.1));
           dummy.rotation.set(0, 0, 0);
           dummy.scale.set(1, 1, 1);
@@ -200,8 +251,8 @@ export function buildRoads(
     for (let z = -CITY_HALF + 28; z < CITY_HALF; z += 28) addLight(sx - 6.8, z);
   }
   for (const sz of layout.streetsZ) {
-    for (let x = -CITY_HALF + 14; x < CITY_HALF; x += 28) addLight(x, sz + 6.8);
-    for (let x = -CITY_HALF + 28; x < CITY_HALF; x += 28) addLight(x, sz - 6.8);
+    for (let x = -CITY_HALF + 14; x < 128; x += 28) addLight(x, sz + 6.8);
+    for (let x = -CITY_HALF + 28; x < 128; x += 28) addLight(x, sz - 6.8);
   }
   if (lightXf.length > 0) {
     const poleGeo = track(new THREE.CylinderGeometry(0.09, 0.13, 5.2, 6));

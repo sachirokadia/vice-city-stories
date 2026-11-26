@@ -16,6 +16,12 @@ npm run preview    # serve the production build → http://localhost:4173
 
 ## Detailed world and vehicle fleet (26 November 2026)
 
+The playable city now has 94 buildings across 30 blocks, with glazed office
+towers, awnings and storefronts, pitched-roof homes, warehouse loading bays,
+park paths and a continuous waterfront. **Play** opens the normal campaign.
+Visit `/world-v2/city.html` for the full map and district views. Every graphics
+tier uses the same building plan and collision boxes.
+
 A researched coastal block, ten textured world GLBs and notes on 25 primary
 sources are included in `public/world-v2`. **Explore Ocean Drive** on the main
 menu starts free roam beside the four imported buildings and the active car.

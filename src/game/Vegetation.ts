@@ -8,6 +8,36 @@ import type { QualitySettings } from './Quality';
 import type { CityLayout } from './CityGenerator';
 import { CITY_HALF, mulberry32 } from './CityGenerator';
 import type { Track } from './Buildings';
+import { GeometryBatch, composeMatrix } from './Merge';
+
+function palmCrown(size: number, leaves: number): THREE.BufferGeometry {
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  for (let leaf = 0; leaf < leaves; leaf++) {
+    const angle = leaf * 2.39996;
+    const reach = size * (.78 + (leaf % 4) * .075);
+    const rise = .45 + (leaf % 3) * .14;
+    const start = vertices.length / 3;
+    for (let step = 0; step <= 8; step++) {
+      const t = step / 8;
+      const r = reach * t;
+      const y = rise * Math.sin(t * Math.PI) - .72 * t * t;
+      const width = .26 * Math.sin(Math.PI * t ** .75) + .006;
+      for (const side of [-1, 0, 1]) {
+        vertices.push(Math.cos(angle) * r - Math.sin(angle) * side * width,
+          y - Math.abs(side) * width * .55, Math.sin(angle) * r + Math.cos(angle) * side * width);
+      }
+      if (step === 0) continue;
+      const i = start + (step - 1) * 3;
+      indices.push(i, i + 1, i + 3, i + 1, i + 4, i + 3, i + 1, i + 2, i + 4, i + 2, i + 5, i + 4);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
 
 export function buildVegetation(
   group: THREE.Group,
@@ -81,10 +111,10 @@ export function buildVegetation(
     palmXf.forEach((m, i) => trunks.setMatrixAt(i, up(m, 2.3)));
     trunks.castShadow = true;
     group.add(trunks);
-    const leafGeo = track(new THREE.ConeGeometry(2.1, 2.8, 7));
-    const leafMat = track(new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.85 }));
+    const leafGeo = track(palmCrown(2.5, quality.tier === 'low' ? 8 : 13));
+    const leafMat = track(new THREE.MeshStandardMaterial({ color: 0x416134, roughness: 0.85, side: THREE.DoubleSide }));
     const leaves = new THREE.InstancedMesh(leafGeo, leafMat, palmXf.length);
-    palmXf.forEach((m, i) => leaves.setMatrixAt(i, leafUp(m, 5.4)));
+    palmXf.forEach((m, i) => leaves.setMatrixAt(i, leafUp(m, 4.57)));
     leaves.castShadow = true;
     group.add(leaves);
   }
@@ -96,10 +126,10 @@ export function buildVegetation(
     shortPalmBase.forEach((m, i) => trunks.setMatrixAt(i, up(m, 1.5)));
     trunks.castShadow = true;
     group.add(trunks);
-    const leafGeo = track(new THREE.ConeGeometry(2.5, 2.2, 7));
-    const leafMat = track(new THREE.MeshStandardMaterial({ color: 0x37935f, roughness: 0.85 }));
+    const leafGeo = track(palmCrown(2.3, quality.tier === 'low' ? 8 : 13));
+    const leafMat = track(new THREE.MeshStandardMaterial({ color: 0x4b703c, roughness: 0.85, side: THREE.DoubleSide }));
     const leaves = new THREE.InstancedMesh(leafGeo, leafMat, shortPalmBase.length);
-    shortPalmBase.forEach((m, i) => leaves.setMatrixAt(i, leafUp(m, 3.4)));
+    shortPalmBase.forEach((m, i) => leaves.setMatrixAt(i, leafUp(m, 2.98)));
     leaves.castShadow = true;
     group.add(leaves);
   }
@@ -152,7 +182,9 @@ export function buildVegetation(
   }
 
   // --- Parks: grass, trees, benches ------------------------------------
-  const grassMat = track(new THREE.MeshStandardMaterial({ color: 0x4a8f4a, roughness: 1 }));
+  const grassMat = track(new THREE.MeshStandardMaterial({ color: 0x557341, roughness: 1 }));
+  const pathBatch = new GeometryBatch();
+  const pathGeo = track(new THREE.PlaneGeometry());
   const treeTrunkXf: THREE.Matrix4[] = [];
   const treeTopXf: THREE.Matrix4[] = [];
   const benchXf: THREE.Matrix4[] = [];
@@ -165,10 +197,14 @@ export function buildVegetation(
     grass.position.set(park.cx, 0.025, park.cz);
     grass.receiveShadow = true;
     group.add(grass);
+    pathBatch.add(pathGeo, composeMatrix(park.cx, .039, park.cz, 0, park.maxX - park.minX, 2.8, 1, -Math.PI / 2));
+    pathBatch.add(pathGeo, composeMatrix(park.cx, .041, park.cz, 0, 2.8, park.maxZ - park.minZ, 1, -Math.PI / 2));
+    pathBatch.add(pathGeo, composeMatrix(park.cx, .043, park.cz, 0, 8, 8, 1, -Math.PI / 2));
     const prand = mulberry32(1000 + Math.floor(park.cx * 10 + park.cz));
     for (let i = 0; i < 9; i++) {
       const x = park.minX + 6 + prand() * (park.maxX - park.minX - 12);
       const z = park.minZ + 6 + prand() * (park.maxZ - park.minZ - 12);
+      if (Math.abs(x - park.cx) < 3 || Math.abs(z - park.cz) < 3) continue;
       // WS4: park trees vary in size (0.85–1.2x) instead of clones.
       const ts = 0.85 + prand() * 0.35;
       dummy.position.set(x, 1.4 * ts, z);
@@ -187,6 +223,12 @@ export function buildVegetation(
       dummy.updateMatrix();
       benchXf.push(dummy.matrix.clone());
     }
+  }
+  const paths = pathBatch.build();
+  if (paths) {
+    const mesh = new THREE.Mesh(track(paths), track(new THREE.MeshStandardMaterial({ color: 0xb3a68e, roughness: .94 })));
+    mesh.receiveShadow = true;
+    group.add(mesh);
   }
   if (treeTrunkXf.length > 0) {
     const trunks = new THREE.InstancedMesh(

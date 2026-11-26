@@ -12,8 +12,9 @@
  */
 import * as THREE from 'three';
 import type { QualitySettings } from './Quality';
-import { generateLayout, mulberry32, CITY_HALF } from './CityGenerator';
-import { buildBuildings, buildBeaconTower } from './Buildings';
+import { generateLayout, CITY_HALF } from './CityGenerator';
+import { buildBeaconTower } from './Buildings';
+import { buildCityArchitecture } from './CityArchitecture';
 import type { Track } from './Buildings';
 import { buildRoads } from './Roads';
 import type { SignalState } from './Roads';
@@ -23,7 +24,7 @@ import { buildStreetProps } from './StreetProps';
 import { buildGarage } from './Garage';
 import { buildShop } from './Shop';
 import { GeometryBatch, composeMatrix } from './Merge';
-import { coastalCollisionBoxes, overlapsCoastalLot } from './CoastalDistrictLayout';
+import { coastalCollisionBoxes } from './CoastalDistrictLayout';
 import { installCoastalDistrict } from './CoastalDistrict';
 import type { CoastalLoadStatus } from './CoastalDistrict';
 
@@ -93,42 +94,46 @@ export function buildWorld(scene: THREE.Scene, quality: QualitySettings, onAsset
     return r;
   };
 
-  const layout = generateLayout(quality);
-  layout.plots = layout.plots.filter(p => !overlapsCoastalLot(p.x, p.z, p.w, p.d));
-  const rand = mulberry32(20261119);
+  const layout = generateLayout();
 
   // ---- Base ground (under everything) ----
   const groundTex = makeGroundTexture(track);
   const ground = new THREE.Mesh(
-    track(new THREE.PlaneGeometry(CITY_HALF * 2 + 40, CITY_HALF * 2 + 40)),
+    track(new THREE.PlaneGeometry(CITY_HALF + 20 + layout.waterStartX - 8, CITY_HALF * 2 + 40)),
     track(new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.95, metalness: 0 })),
   );
   ground.rotation.x = -Math.PI / 2;
+  ground.position.x = (layout.waterStartX - 8 - CITY_HALF - 20) / 2;
   ground.receiveShadow = true;
   ground.name = 'ground';
   group.add(ground);
 
   // ---- Block pads: parcels read as concrete between the streets ----
-  // One merged mesh instead of ~28 separate planes.
-  const padMat = track(new THREE.MeshStandardMaterial({ color: 0x3b3644, roughness: 0.95 }));
+  // Separate land use visually while batching each surface.
+  const padSurfaces = {
+    paving: { batch: new GeometryBatch(), color: 0x8f887a },
+    garden: { batch: new GeometryBatch(), color: 0x697453 },
+    service: { batch: new GeometryBatch(), color: 0x797c75 },
+  };
   const padGeo = track(new THREE.PlaneGeometry(1, 1));
-  const padBatch = new GeometryBatch();
   for (const block of layout.blocks) {
     if (block.district === 'park') continue; // grass goes in Vegetation
-    padBatch.add(
+    const use = block.district === 'residential' ? 'garden' : block.district === 'industrial' ? 'service' : 'paving';
+    padSurfaces[use].batch.add(
       padGeo,
       composeMatrix(block.cx, 0.02, block.cz, 0, block.maxX - block.minX, block.maxZ - block.minZ, 1, -Math.PI / 2),
     );
   }
-  const padMerged = padBatch.build();
-  if (padMerged) {
-    const pads = new THREE.Mesh(track(padMerged), padMat);
+  for (const surface of Object.values(padSurfaces)) {
+    const geometry = surface.batch.build();
+    if (!geometry) continue;
+    const pads = new THREE.Mesh(track(geometry), track(new THREE.MeshStandardMaterial({ color: surface.color, roughness: .94 })));
     pads.receiveShadow = true;
     group.add(pads);
   }
 
   // ---- The city itself, from the Phase 2 modules ----
-  const { buildings } = buildBuildings(group, layout, quality, rand, track);
+  const buildings = buildCityArchitecture(group, layout, quality, track);
   buildings.push(...coastalCollisionBoxes());
   const coastalDistrict = installCoastalDistrict(group, quality, onAssets);
   const roads = buildRoads(group, layout, quality, track);
@@ -188,6 +193,7 @@ export function buildWorld(scene: THREE.Scene, quality: QualitySettings, onAsset
       scene.remove(group);
       group.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
+          if (obj instanceof THREE.InstancedMesh) obj.dispose();
           obj.geometry.dispose();
           const m = obj.material;
           if (Array.isArray(m)) m.forEach((mm) => mm.dispose());

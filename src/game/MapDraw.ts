@@ -23,6 +23,7 @@ import {
   STORE_CENTRE,
 } from './CityGenerator';
 import type { CityLayout } from './CityGenerator';
+import { coastalCollisionBoxes } from './CoastalDistrictLayout';
 
 /** Internal canvas resolution of the minimap (CSS scales it down). */
 export const MAP_SIZE_MINI = 360;
@@ -61,7 +62,7 @@ export function drawCityBase(
   const roadW = ROAD_HALF * 2 * pxPerUnit;
 
   // --- Water (east of the ocean wall) + beach sand ---
-  const water = worldToMap(layout.waterStartX, 0, size);
+  const water = worldToMap(layout.waterStartX - 8, 0, size);
   ctx.fillStyle = 'rgba(28, 84, 128, 0.9)';
   ctx.fillRect(water.u, 0, size - water.u, size);
   const beach = worldToMap(layout.beachStartX, 0, size);
@@ -85,6 +86,15 @@ export function drawCityBase(
     const a = worldToMap(b.minX, b.minZ, size);
     const c = worldToMap(b.maxX, b.maxZ, size);
     ctx.fillRect(a.u, a.v, c.u - a.u, c.v - a.v);
+  }
+  ctx.fillStyle = 'rgba(211, 200, 174, 0.30)';
+  for (const plot of layout.plots) {
+    const a = worldToMap(plot.x - plot.w / 2, plot.z - plot.d / 2, size);
+    ctx.fillRect(a.u, a.v, plot.w * pxPerUnit, plot.d * pxPerUnit);
+  }
+  for (const box of coastalCollisionBoxes()) {
+    const a = worldToMap(box.minX, box.minZ, size);
+    ctx.fillRect(a.u, a.v, (box.maxX - box.minX) * pxPerUnit, (box.maxZ - box.minZ) * pxPerUnit);
   }
 
   // --- Parks (green) ---

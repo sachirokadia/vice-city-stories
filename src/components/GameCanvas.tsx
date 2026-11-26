@@ -863,7 +863,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu, s
           )}
 
           {!hudHidden && (
-            <Minimap engineRef={engineRef} quality={quality} />
+            <Minimap engineRef={engineRef} />
           )}
 
           <div className="hud hud-bottom">
@@ -1286,7 +1286,7 @@ export default function GameCanvas({ settings, onSettingsChange, onExitToMenu, s
           )}
 
           {showMap && (
-            <FullMap engineRef={engineRef} quality={quality} onBack={closeMap} />
+            <FullMap engineRef={engineRef} onBack={closeMap} />
           )}
 
           {showStats && stats && (

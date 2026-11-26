@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import type { CityLayout } from './CityGenerator';
 import { CITY_HALF, mulberry32 } from './CityGenerator';
 import type { Track } from './Buildings';
-import { GeometryBatch } from './Merge';
+import { GeometryBatch, composeMatrix } from './Merge';
 
 function makeSandTexture(track: Track): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -18,16 +18,17 @@ function makeSandTexture(track: Track): THREE.CanvasTexture {
   const ctx = c.getContext('2d')!;
   ctx.fillStyle = '#e6cf9e';
   ctx.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 2200; i++) {
-    const v = Math.random();
+  const random = mulberry32(2301);
+  for (let i = 0; i < 4100; i++) {
+    const v = random();
     ctx.fillStyle = v < 0.5 ? 'rgba(190,160,110,0.5)' : 'rgba(255,240,200,0.5)';
-    ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+    ctx.fillRect(random() * 256, random() * 256, 2, 2);
   }
   const tex = track(new THREE.CanvasTexture(c));
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(3, 12);
+  tex.repeat.set(11, 73);
   return tex;
 }
 
@@ -48,7 +49,7 @@ function makeBoardTexture(track: Track): THREE.CanvasTexture {
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(1, 24);
+  tex.repeat.set(5, 38);
   return tex;
 }
 
@@ -58,7 +59,7 @@ export function buildEnvironment(
   track: Track,
 ): { update: (dt: number) => void } {
   // --- Sand ------------------------------------------------------------
-  const sandW = layout.waterStartX - layout.beachStartX;
+  const sandW = layout.waterStartX - 8 - layout.beachStartX;
   const sand = new THREE.Mesh(
     track(new THREE.PlaneGeometry(sandW, CITY_HALF * 2 + 12)),
     track(new THREE.MeshStandardMaterial({ map: makeSandTexture(track), roughness: 1 })),
@@ -79,18 +80,34 @@ export function buildEnvironment(
   board.receiveShadow = true;
   group.add(board);
   const railMat = track(new THREE.MeshStandardMaterial({ color: 0x3a3a44, roughness: 0.5, metalness: 0.6 }));
-  const railTop = new THREE.Mesh(track(new THREE.BoxGeometry(0.14, 0.14, CITY_HALF * 2)), railMat);
-  railTop.position.set(layout.beachStartX - 0.4, 1.05, 0);
-  group.add(railTop);
-  const railMid = new THREE.Mesh(track(new THREE.BoxGeometry(0.1, 0.1, CITY_HALF * 2)), railMat);
-  railMid.position.set(layout.beachStartX - 0.4, 0.55, 0);
-  group.add(railMid);
+  const rail = new GeometryBatch();
+  const deckDetails = new GeometryBatch();
+  const box = track(new THREE.BoxGeometry());
+  const openings = layout.streetsZ;
+  const railX = layout.beachStartX - .4;
+  let start = -CITY_HALF;
+  for (const end of [...openings.map(z => z - 2.8), CITY_HALF]) {
+    for (const y of [.56, 1.05]) rail.add(box, composeMatrix(railX, y, (start + end) / 2, 0, .082, .082, end - start));
+    start = end + 5.6;
+  }
+  const stone = track(new THREE.MeshStandardMaterial({ color: 0xbab19d, roughness: .92 }));
+  for (const z of openings) {
+    // Level sand access at the end of every street.
+    deckDetails.add(box, composeMatrix(134, .036, z, 0, 12, .07, 4.6));
+    for (const side of [-1, 1]) rail.add(box, composeMatrix(railX, .56, z + side * 2.8, 0, .13, 1.12, .13));
+  }
+  for (const [batch, material] of [[rail, railMat], [deckDetails, stone]] as const) {
+    const mesh = new THREE.Mesh(track(batch.build()!), material);
+    mesh.receiveShadow = true; mesh.castShadow = batch === rail;
+    group.add(mesh);
+  }
   const postGeo = track(new THREE.CylinderGeometry(0.06, 0.06, 1.05, 6));
-  const postCount = Math.floor((CITY_HALF * 2) / 6);
-  const posts = new THREE.InstancedMesh(postGeo, railMat, postCount);
+  const postPositions = Array.from({ length: Math.floor(CITY_HALF * 2 / 6) }, (_, i) => -CITY_HALF + i * 6)
+    .filter(z => openings.every(edge => Math.abs(z - edge) > 2.8));
+  const posts = new THREE.InstancedMesh(postGeo, railMat, postPositions.length);
   const dummy = new THREE.Object3D();
-  for (let i = 0; i < postCount; i++) {
-    dummy.position.set(layout.beachStartX - 0.4, 0.52, -CITY_HALF + i * 6);
+  for (const [i, z] of postPositions.entries()) {
+    dummy.position.set(railX, 0.52, z);
     dummy.rotation.set(0, 0, 0);
     dummy.scale.set(1, 1, 1);
     dummy.updateMatrix();
@@ -217,10 +234,10 @@ export function buildEnvironment(
         varying vec2 vPos;
         void main() {
           vec3 p = position;
-          // Two gentle rolling waves; local x is east-west, y north-south.
-          p.z += sin(p.x * 0.08 + uTime * 0.9) * 0.35
-               + sin(p.y * 0.05 - uTime * 0.6) * 0.3
-               + sin((p.x + p.y) * 0.03 + uTime * 0.4) * 0.25;
+          // Small breakers at the beach and a longer swell offshore.
+          float openSea = smoothstep(0.0, 30.0, p.x + 122.0);
+          p.z += sin(p.x * .22 - uTime * 1.25 + p.y * .045) * mix(.035, .21, openSea)
+               + sin(p.y * .055 - uTime * .65) * .10 * openSea;
           vPos = p.xy;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
         }
@@ -230,17 +247,19 @@ export function buildEnvironment(
         varying vec2 vPos;
         void main() {
           // vPos.x: -122 at the shore, +122 far out east.
-          float shore = smoothstep(-122.0, -60.0, vPos.x);
-          vec3 shallow = vec3(0.16, 0.62, 0.62);
-          vec3 deep = vec3(0.05, 0.23, 0.42);
+          float distanceToShore = vPos.x + 122.0;
+          float shore = smoothstep(0.0, 71.0, distanceToShore);
+          vec3 shallow = vec3(.16, .53, .49);
+          vec3 deep = vec3(.035, .22, .36);
           vec3 col = mix(shallow, deep, shore);
-          // Moving foam band at the waterline.
-          float foamLine = sin(vPos.y * 0.12 + uTime * 1.2) * 4.0;
-          float foam = smoothstep(6.0, 0.0, abs(vPos.x + 122.0 + foamLine));
-          col = mix(col, vec3(0.95, 0.98, 0.95), foam * 0.7);
-          // Sun glitter.
-          float glit = sin(vPos.x * 0.9 + uTime * 2.0) * sin(vPos.y * 0.7 - uTime * 1.4);
-          col += vec3(0.10, 0.08, 0.05) * smoothstep(0.92, 1.0, glit);
+          float ripple = sin(vPos.x * 1.35 + vPos.y * .31 + uTime * 1.3)
+                       + .55 * sin(vPos.x * 2.85 - vPos.y * 1.21 + uTime * .73);
+          col += vec3(.035, .07, .074) * ripple;
+          float swell = sin(distanceToShore * 1.18 + .73 * sin(vPos.y * .31) + uTime * 1.31);
+          float broken = smoothstep(-.7, .55, sin(vPos.y * 1.7 + vPos.x * 2.3) + .3 * ripple);
+          float foam = smoothstep(.73, .99, swell) * (1.0 - smoothstep(2.0, 11.0, distanceToShore)) * broken;
+          float lip = (1.0 - smoothstep(0.08, .9, distanceToShore)) * (.48 + .34 * broken);
+          col = mix(col, vec3(.76, .91, .86), max(foam * .68, lip));
           gl_FragColor = vec4(col, 1.0);
         }
       `,
@@ -248,7 +267,8 @@ export function buildEnvironment(
   );
   const ocean = new THREE.Mesh(track(new THREE.PlaneGeometry(244, 440, 48, 48)), oceanMat);
   ocean.rotation.x = -Math.PI / 2;
-  ocean.position.set(layout.waterStartX + 122, 0.35, 0);
+  ocean.position.set(layout.waterStartX - 8 + 122, 0.105, 0);
+  ocean.name = 'shoreline-water';
   group.add(ocean);
 
   return {

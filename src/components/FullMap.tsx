@@ -19,7 +19,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type { GameEngine } from '../game/GameEngine';
-import type { QualitySettings } from '../game/Quality';
 import { generateLayout } from '../game/CityGenerator';
 import { COLLECTIBLE_DEFS } from '../game/Collectibles';
 import { RANGE_RACK } from '../game/Range';
@@ -77,11 +76,10 @@ const KIND_DOT: Record<LocationKind, string> = {
 
 interface FullMapProps {
   engineRef: RefObject<GameEngine | null>;
-  quality: QualitySettings | null;
   onBack: () => void;
 }
 
-export default function FullMap({ engineRef, quality, onBack }: FullMapProps) {
+export default function FullMap({ engineRef, onBack }: FullMapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -89,7 +87,7 @@ export default function FullMap({ engineRef, quality, onBack }: FullMapProps) {
   const dragRef = useRef<{ startX: number; startY: number; panX: number; panY: number; moved: boolean } | null>(null);
   const suppressClickRef = useRef(false);
 
-  const layout = useMemo(() => (quality ? generateLayout(quality) : null), [quality]);
+  const layout = useMemo(generateLayout, []);
 
   // Real markers, read once from the live game state when the map opens
   // (the engine is stopped while the map is up, so nothing moves).
@@ -212,7 +210,6 @@ export default function FullMap({ engineRef, quality, onBack }: FullMapProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const draw = () => {
-      if (!layout) return;
       drawCityBase(ctx, layout, S);
       for (const loc of locations) {
         if (loc.tone) drawMapMarker(ctx, { x: loc.x, z: loc.z, tone: loc.tone }, S);

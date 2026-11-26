@@ -1,5 +1,12 @@
 # World V2 generation tools
 
+The full city preview uses the game's own scene builder. From the repository
+root with both dependency sets installed and Node.js 24, run
+`node --expose-gc tools/world-v2/test-city-runtime.mjs` to check Low and High,
+then `node --expose-gc tools/world-v2/render-coastal-world-v2.mjs --city=overview`
+to recreate the aerial image. Replace `overview` with `downtown`, `market`,
+`residential`, `warehouses`, or `waterfront` for the district views.
+
 Run these commands from the repository root using Node.js 22 or later:
 
 ```sh

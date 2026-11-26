@@ -15,7 +15,6 @@ export interface QualitySettings {
   antialias: boolean;
   shadows: boolean;
   shadowMapSize: number;
-  buildingCount: number;
   palmCount: number;
   fogNear: number;
   fogFar: number;
@@ -27,7 +26,6 @@ const SETTINGS: Record<QualityTier, Omit<QualitySettings, 'tier' | 'label'>> = {
     antialias: false,
     shadows: false,
     shadowMapSize: 512,
-    buildingCount: 28,
     palmCount: 12,
     fogNear: 60,
     fogFar: 220,
@@ -37,7 +35,6 @@ const SETTINGS: Record<QualityTier, Omit<QualitySettings, 'tier' | 'label'>> = {
     antialias: true,
     shadows: true,
     shadowMapSize: 1024,
-    buildingCount: 48,
     palmCount: 28,
     fogNear: 80,
     fogFar: 300,
@@ -47,7 +44,6 @@ const SETTINGS: Record<QualityTier, Omit<QualitySettings, 'tier' | 'label'>> = {
     antialias: true,
     shadows: true,
     shadowMapSize: 2048,
-    buildingCount: 72,
     palmCount: 48,
     fogNear: 100,
     fogFar: 380,
@@ -57,7 +53,6 @@ const SETTINGS: Record<QualityTier, Omit<QualitySettings, 'tier' | 'label'>> = {
     antialias: true,
     shadows: true,
     shadowMapSize: 2048,
-    buildingCount: 96,
     palmCount: 64,
     fogNear: 120,
     fogFar: 460,

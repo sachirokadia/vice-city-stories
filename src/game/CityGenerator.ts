@@ -13,9 +13,9 @@
  *     boardwalk x 128..138. The x = 0 avenue runs from the spawn
  *     plaza south straight up to the Beacon Tower plaza in the north.
  */
-import type { QualitySettings } from './Quality';
+import { overlapsCoastalLot } from './CoastalDistrictLayout';
 
-export type District = 'downtown' | 'commercial' | 'residential' | 'coastal' | 'park';
+export type District = 'downtown' | 'commercial' | 'residential' | 'coastal' | 'industrial' | 'park';
 
 export interface Block {
   minX: number;
@@ -106,6 +106,7 @@ function districtFor(cx: number, cz: number): District {
   if (cz < -90) return 'downtown';
   if (cx >= 60 && cz < 90) return 'coastal';
   if (cz < 30) return 'commercial';
+  if (cx < -60 && cz > 90) return 'industrial';
   return 'residential';
 }
 
@@ -119,6 +120,8 @@ function heightFor(district: District, rand: () => number): number {
       return 9 + rand() * 13;
     case 'residential':
       return 6 + rand() * 7;
+    case 'industrial':
+      return 6 + rand() * 3;
     default:
       return 8;
   }
@@ -145,7 +148,7 @@ function faceFor(x: number, z: number, streetsX: number[], streetsZ: number[]): 
   return face;
 }
 
-export function generateLayout(quality: QualitySettings): CityLayout {
+export function generateLayout(): CityLayout {
   const rand = mulberry32(20261119);
   const streetsX = [-120, -60, 0, 60, 120];
   const streetsZ = [-150, -90, -30, 30, 90, 150];
@@ -173,15 +176,10 @@ export function generateLayout(quality: QualitySettings): CityLayout {
   }
 
   const parks = blocks.filter((b) => b.district === 'park');
-  const plots: Plot[] = [];  // Downtown first so a low building budget still keeps the skyline.
-  const ordered = [...blocks]
-    .filter((b) => b.district !== 'park')
-    .sort((a, b) => {
-      const rank = (d: District) => (d === 'downtown' ? 0 : d === 'coastal' ? 1 : d === 'commercial' ? 2 : 3);
-      return rank(a.district) - rank(b.district);
-    });
-  for (const block of ordered) {
-    if (plots.length >= quality.buildingCount) break;
+  const plots: Plot[] = [];
+  const order: Record<District, number> = { downtown: 0, coastal: 1, commercial: 2, residential: 3, industrial: 3, park: 4 };
+  const developed = blocks.filter(b => b.district !== 'park').sort((a, b) => order[a.district] - order[b.district]);
+  for (const block of developed) {
     const bw = block.maxX - block.minX;
     const bd = block.maxZ - block.minZ;
     // Downtown keeps one big tower per block; every other district
@@ -195,7 +193,6 @@ export function generateLayout(quality: QualitySettings): CityLayout {
     const pd = (bd - gap * (rows + 1)) / rows;
     for (let c = 0; c < cols; c++) {
       for (let r = 0; r < rows; r++) {
-        if (plots.length >= quality.buildingCount) break;
         // Vary the footprint a little so no two buildings match.
         const w = pw * (0.72 + rand() * 0.26);
         const d = pd * (0.72 + rand() * 0.26);
@@ -228,7 +225,10 @@ export function generateLayout(quality: QualitySettings): CityLayout {
     p.x - p.w / 2 > STORE_FOOTPRINT.maxX + 2 ||
     p.z + p.d / 2 < STORE_FOOTPRINT.minZ - 2 ||
     p.z - p.d / 2 > STORE_FOOTPRINT.maxZ + 2;
-  const keptPlots = plots.filter((p) => garageClear(p) && storeClear(p));
+  const keptPlots = plots.filter((p) => {
+    const podium = p.district === 'downtown' ? 1.1 : 1;
+    return garageClear(p) && storeClear(p) && !overlapsCoastalLot(p.x, p.z, p.w * podium, p.d * podium);
+  });
 
   return {
     streetsX,

@@ -10,3 +10,4 @@ Downloaded from Poly Haven's API at 1K, November 2026. Color maps retained at 1K
 The parked Velocity GT is the project's preserved V1 vehicle, authored in the earlier original procedural model pass.
 Research sources are linked in research-world.html. Papers and documentation are not redistributed; notes are original paraphrases.
 Three.js / loader / exporter: MIT; @napi-rs/canvas: MIT. Their existing package licenses apply.
+The playable city uses 512 px JPEG derivatives of Poly Haven asphalt_02 and pavement_02.
