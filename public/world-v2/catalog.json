@@ -1,0 +1,197 @@
+{
+  "source": "sachirokadia/vice-city-stories",
+  "sourceCommit": "dc36c0bfdc6606747090b8f94f049a5d2455140c",
+  "status": "World V2 asset study; Unity runtime integration pending.",
+  "models": [
+    {
+      "id": "ocean-view-v2",
+      "name": "Ocean View Apartments",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Metric architecture with wall openings, recessed glazing, shallow rooms, floor slabs, parapets, services and CC0 PBR surfaces.",
+      "triangles": 60240,
+      "vertices": 83054,
+      "meshes": 169,
+      "dimensions": [
+        24.34,
+        21.334,
+        15.755
+      ],
+      "animations": [],
+      "glb": "models/ocean-view-v2.glb",
+      "lod": false
+    },
+    {
+      "id": "harbor-exchange-v2",
+      "name": "Harbor Exchange",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Metric architecture with wall openings, recessed glazing, shallow rooms, floor slabs, parapets, services and CC0 PBR surfaces.",
+      "triangles": 141468,
+      "vertices": 224934,
+      "meshes": 251,
+      "dimensions": [
+        18.34,
+        33.824,
+        16.28
+      ],
+      "animations": [],
+      "glb": "models/harbor-exchange-v2.glb",
+      "lod": false
+    },
+    {
+      "id": "sunset-market-v2",
+      "name": "Sunset Corner Market",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Metric architecture with wall openings, recessed glazing, shallow rooms, floor slabs, parapets, services and CC0 PBR surfaces.",
+      "triangles": 25564,
+      "vertices": 34270,
+      "meshes": 91,
+      "dimensions": [
+        18.34,
+        11.984,
+        12.834
+      ],
+      "animations": [],
+      "glb": "models/sunset-market-v2.glb",
+      "lod": false
+    },
+    {
+      "id": "marina-house-v2",
+      "name": "Marina House",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Metric architecture with wall openings, recessed glazing, shallow rooms, floor slabs, parapets, services and CC0 PBR surfaces.",
+      "triangles": 46332,
+      "vertices": 62918,
+      "meshes": 143,
+      "dimensions": [
+        20.34,
+        18.184,
+        15.741
+      ],
+      "animations": [],
+      "glb": "models/marina-house-v2.glb",
+      "lod": false
+    },
+    {
+      "id": "coastal-infrastructure-v2",
+      "name": "Ocean Drive \u00b7 Road and Waterfront",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Two lanes, parking marks, dropped kerbs, drains, pavement, benches, palms, lamps, coping, guardrails and water.",
+      "triangles": 98488,
+      "vertices": 86903,
+      "meshes": 66,
+      "dimensions": [
+        160,
+        10.323,
+        150
+      ],
+      "animations": [],
+      "glb": "models/coastal-infrastructure-v2.glb",
+      "lod": false
+    },
+    {
+      "id": "ocean-drive-world-v2",
+      "name": "Ocean Drive \u00b7 Coastal World V2",
+      "kind": "Scene",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Four distinct metric buildings and a complete coastal street block. Actual asset scene; not a Unity screenshot or verified playable build.",
+      "triangles": 417664,
+      "vertices": 530553,
+      "meshes": 752,
+      "dimensions": [
+        160,
+        35.694,
+        150
+      ],
+      "animations": [],
+      "glb": "models/ocean-drive-world-v2.glb",
+      "lod": false
+    },
+    {
+      "id": "ocean-view-v2-lod1",
+      "name": "Ocean View \u00b7 LOD1",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Separate reduced-detail mesh: no curtains, furniture, balcony balusters or roof equipment. Unity LODGroup wiring pending.",
+      "triangles": 27192,
+      "vertices": 34732,
+      "meshes": 98,
+      "dimensions": [
+        24.34,
+        21.16,
+        15.64
+      ],
+      "animations": [],
+      "glb": "models/ocean-view-v2-lod1.glb",
+      "lod": true
+    },
+    {
+      "id": "harbor-exchange-v2-lod1",
+      "name": "Harbor Exchange \u00b7 LOD1",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Separate reduced-detail mesh: no curtains, furniture, balcony balusters or roof equipment. Unity LODGroup wiring pending.",
+      "triangles": 68988,
+      "vertices": 81636,
+      "meshes": 114,
+      "dimensions": [
+        18.34,
+        33.595,
+        16.12
+      ],
+      "animations": [],
+      "glb": "models/harbor-exchange-v2-lod1.glb",
+      "lod": true
+    },
+    {
+      "id": "sunset-market-v2-lod1",
+      "name": "Sunset Market \u00b7 LOD1",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Separate reduced-detail mesh: no curtains, furniture, balcony balusters or roof equipment. Unity LODGroup wiring pending.",
+      "triangles": 10956,
+      "vertices": 14204,
+      "meshes": 50,
+      "dimensions": [
+        18.34,
+        11.81,
+        11.385
+      ],
+      "animations": [],
+      "glb": "models/sunset-market-v2-lod1.glb",
+      "lod": true
+    },
+    {
+      "id": "marina-house-v2-lod1",
+      "name": "Marina House \u00b7 LOD1",
+      "kind": "Environment",
+      "status": "World V2 asset study",
+      "version": "World V2",
+      "description": "Separate reduced-detail mesh: no curtains, furniture, balcony balusters or roof equipment. Unity LODGroup wiring pending.",
+      "triangles": 20340,
+      "vertices": 26108,
+      "meshes": 82,
+      "dimensions": [
+        20.34,
+        18.01,
+        15.64
+      ],
+      "animations": [],
+      "glb": "models/marina-house-v2-lod1.glb",
+      "lod": true
+    }
+  ]
+}

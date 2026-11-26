@@ -16,6 +16,9 @@ qa/
 # Vercel CLI local project link (project/org ids) — not part of the source
 .vercel
 
+# Downloaded inputs for the reproducible World V2 asset tools
+tools/world-v2/.cache/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

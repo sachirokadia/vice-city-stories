@@ -1,0 +1,256 @@
+{
+  "reviewed": "2026-11-26",
+  "method": "Targeted reading of abstracts, introductions and relevant documentation sections. Not a claim to have watched every video frame or reproduced complete research algorithms.",
+  "sources": [
+    {
+      "id": "P01",
+      "type": "Paper",
+      "title": "Procedural Modeling of Cities — Parish & Müller",
+      "date": "2001",
+      "url": "https://people.eecs.berkeley.edu/~sequin/CS285/PAPERS/Parish_Muller01.pdf",
+      "finding": "City generation separates the street network, lots and buildings.",
+      "decision": "Use one coherent road, building parcels and waterfront boundary; do not scatter unrelated buildings.",
+      "status": "Applied to layout; no L-system city solver implemented"
+    },
+    {
+      "id": "P02",
+      "type": "Paper",
+      "title": "Instant Architecture — Wonka et al.",
+      "date": "2003",
+      "url": "https://peterwonka.net/Publications/pdfs/2003.SG.Wonka.InstantArchitecture.high.pdf",
+      "finding": "Split grammars organize buildings through parameterized subdivisions and matching attributes.",
+      "decision": "Divide each facade into storeys and bays, then instantiate piers, lintels and openings with explicit dimensions.",
+      "status": "Applied as a small deterministic module system; not the full paper algorithm"
+    },
+    {
+      "id": "P03",
+      "type": "Paper",
+      "title": "Procedural Modeling of Buildings — Müller et al.",
+      "date": "2006",
+      "url": "https://www.peterwonka.net/Publications/pdfs/2006.SG.Mueller.ProceduralModelingOfBuildings.final.pdf",
+      "finding": "Hierarchical building rules and context constraints coordinate massing and facade details.",
+      "decision": "Place entrances at pavement level, preserve real openings, connect balcony slabs and rails, and build parapets around roofs.",
+      "status": "Applied to architecture"
+    },
+    {
+      "id": "P04",
+      "type": "Paper",
+      "title": "Image-based Procedural Modeling of Facades — Müller et al.",
+      "date": "2007",
+      "url": "https://peterwonka.net/Publications/pdfs/2007.SG.Mueller.ImagebasedProceduralModelingOfFacades.print.pdf",
+      "finding": "Facade structure can be represented through a semantic hierarchy of floors, tiles and details.",
+      "decision": "Use consistent window rhythm with controlled curtain and shop variations.",
+      "status": "Hierarchy applied; no photo reconstruction or automatic facade inference claimed"
+    },
+    {
+      "id": "P05",
+      "type": "Paper",
+      "title": "Interactive Procedural Street Modeling — Chen et al.",
+      "date": "2008",
+      "url": "https://www2.cs.uh.edu/~chengu/Publications/streetModeling/street_sig08.pdf",
+      "finding": "Street design can incorporate boundaries, terrain and local editing constraints.",
+      "decision": "Constrain streets and parcels to the shoreline; keep the promenade continuous.",
+      "status": "Layout principle applied; no tensor-field street solver implemented"
+    },
+    {
+      "id": "P06",
+      "type": "Course notes",
+      "title": "Physically-Based Shading at Disney — Burley",
+      "date": "2012",
+      "url": "https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf",
+      "finding": "Physically based shading connects material parameters to measured surface behavior.",
+      "decision": "Separate dielectric plaster, glass and masonry from exposed metal; vary roughness and normals instead of adding arbitrary geometry.",
+      "status": "Applied using standard glTF PBR materials, not a custom Disney BRDF"
+    },
+    {
+      "id": "P07",
+      "type": "Course notes",
+      "title": "Moving Frostbite to Physically Based Rendering — Lagarde & de Rousiers",
+      "date": "2014; revised 2015",
+      "url": "https://seblagarde.wordpress.com/2015/07/14/siggraph-2014-moving-frostbite-to-physically-based-rendering/",
+      "finding": "Material authoring, lighting, exposure and validation belong to one consistent rendering workflow.",
+      "decision": "Use separate color and linear data maps, shared exposure, and directional sun with cool ambient light.",
+      "status": "Author overview reviewed; asset/preview workflow applied. Full 54 MB course PDF was not read end to end"
+    },
+    {
+      "id": "U01",
+      "type": "Unity guide",
+      "title": "URP Lit shader material Inspector",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/materials-and-shaders/built-in/shaders-in-universalrp/reference/lit-shader",
+      "finding": "Lit supports opaque and transparent surfaces plus metallic/specular workflows; unused variants add rendering cost.",
+      "decision": "Use shared PBR surfaces and transparent recessed glazing; later map these to URP Lit.",
+      "status": "glTF materials applied; URP material import not yet verified"
+    },
+    {
+      "id": "U02",
+      "type": "Unity guide",
+      "title": "Normal maps",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/materials-and-shaders/built-in/shader-built-in-configure-properties/standard-shader-texture-maps/material-parameter-normal-map",
+      "finding": "Normal maps add lighting detail to surface shading without changing the silhouette.",
+      "decision": "Use CC0 plaster, brick, concrete and paving normal maps at consistent metre scale.",
+      "status": "Applied to exported material maps; Unity normal texture import pending"
+    },
+    {
+      "id": "U03",
+      "type": "Unity guide",
+      "title": "Occlusion maps",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/materials-and-shaders/built-in/shader-built-in-configure-properties/standard-shader-texture-maps/material-parameter-occlusion-map",
+      "finding": "Occlusion maps attenuate indirect lighting and reflections, rather than replacing direct-light shadows.",
+      "decision": "Keep direct shadows separate; do not bake black grime over every surface.",
+      "status": "Design constraint applied; unique baked AO maps not generated"
+    },
+    {
+      "id": "U04",
+      "type": "Unity guide",
+      "title": "Metallic and specular values of real surfaces",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/materials-and-shaders/built-in/shader-built-in-configure-properties/standard-shader-material-charts",
+      "finding": "Material charts distinguish metallic reflectance from dielectric behavior.",
+      "decision": "Set masonry/plaster/glass metalness to zero; use high metalness only for exposed metal.",
+      "status": "Applied to material definitions"
+    },
+    {
+      "id": "U05",
+      "type": "Unity guide",
+      "title": "Reflection Probes",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/lighting-overview/reflections/reflection-probes",
+      "finding": "Probes capture surrounding environments and can blend between different reflection regions.",
+      "decision": "Plan separate baked probes for the street, lobby and waterfront; browser inspection uses an approximate environment.",
+      "status": "Unity configuration pending Editor verification"
+    },
+    {
+      "id": "U06",
+      "type": "Unity guide",
+      "title": "Adaptive Probe Volumes in URP",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/lighting-overview/lighting/probevolumes",
+      "finding": "APV automates probe placement and supplies per-pixel indirect lighting.",
+      "decision": "Plan denser probes near entrances and underneath balconies for moving characters.",
+      "status": "Unity configuration pending Editor verification"
+    },
+    {
+      "id": "U07",
+      "type": "Unity guide",
+      "title": "LOD Group component",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/analysis/graphics-performance-profiling/lod/lod-group/class-lodgroup",
+      "finding": "LOD Groups choose mesh detail levels and optionally cross-fade transitions.",
+      "decision": "Export distinct LOD1 building meshes; retain major silhouettes while dropping interior and small roof detail.",
+      "status": "Reduced meshes exported; Unity LODGroup wiring and thresholds pending"
+    },
+    {
+      "id": "U08",
+      "type": "Unity guide",
+      "title": "Occlusion culling",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/cameras/occlusion-culling/occlusion-culling",
+      "finding": "Occlusion culling excludes renderers completely hidden behind other geometry.",
+      "decision": "Keep buildings and facade floors as separate chunks rather than merging the entire city into one renderer.",
+      "status": "Chunk structure exported; Unity occlusion bake pending"
+    },
+    {
+      "id": "U09",
+      "type": "Unity guide",
+      "title": "Set up scene and lights for baking",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/lighting-overview/direct-and-indirect-lighting/lightmapping/baking-before-runtime/lightmapping",
+      "finding": "Static light baking needs suitable meshes, UVs and lighting settings; moving objects need indirect-light support.",
+      "decision": "Plan static GI for architecture and APV for characters in URP. Do not use the page’s legacy LPPV instructions for this URP project.",
+      "status": "Unity configuration pending Editor verification"
+    },
+    {
+      "id": "U10",
+      "type": "Unity guide",
+      "title": "Generate lightmap UVs",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/lighting-overview/direct-and-indirect-lighting/lightmapping/lighting-gi-uvs/generating-lightmapping-uvs",
+      "finding": "Lightmap UVs need non-overlapping charts and padding, separately from tiled surface UVs.",
+      "decision": "Keep metre-scaled tiled material UVs now; generate a separate secondary UV set in the Unity import pass.",
+      "status": "Surface UVs applied; secondary lightmap unwrap pending"
+    },
+    {
+      "id": "U11",
+      "type": "Unity guide",
+      "title": "Screen Space Ambient Occlusion in URP",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/lighting-overview/lighting/shadows-in-urp/post-processing-ssao/ssao",
+      "finding": "SSAO is a renderer feature using scene depth or normals; it is separate from Volume effects.",
+      "decision": "Plan modest SSAO for contacts and recesses, tested against a disabled baseline.",
+      "status": "Unity configuration pending Editor verification"
+    },
+    {
+      "id": "U12",
+      "type": "Unity guide",
+      "title": "Shadow cascades",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/lighting-overview/shadows/shadow-realtime/shadow-cascades/shadow-cascades",
+      "finding": "Directional shadow cascades distribute shadow resolution over camera distance.",
+      "decision": "Start with two cascades, 60 m shadow distance and 2048 atlas; profile before increasing. CPU previews use their own shadow map.",
+      "status": "Unity configuration pending Editor verification"
+    },
+    {
+      "id": "U13",
+      "type": "Unity guide",
+      "title": "Tonemapping Volume Override in URP",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/post-processing-and-full-screen-effects/urp/effect-list/tonemapping",
+      "finding": "ACES and Neutral provide different highlight roll-off and color treatment.",
+      "decision": "Use restrained ACES in inspection and compare with Neutral later in Unity.",
+      "status": "Browser/CPU preview tonemapping applied; Unity Volume pending"
+    },
+    {
+      "id": "U14",
+      "type": "Unity guide",
+      "title": "Scriptable Render Pipeline Batcher in URP",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/analysis/graphics-performance-profiling/in-urp/reduce-draw-calls-urp/srpbatcher/srpbatcher",
+      "finding": "SRP Batcher reduces CPU material-state preparation for compatible shader variants.",
+      "decision": "Reuse a small shared material set; avoid unnecessary shader variants.",
+      "status": "Shared material design applied; Unity profiler verification pending"
+    },
+    {
+      "id": "U15",
+      "type": "Unity guide",
+      "title": "Introduction to GPU instancing",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/analysis/graphics-performance-profiling/reduce-draw-calls/gpuinstancing/gpuinstancing",
+      "finding": "Instancing can draw repeated compatible mesh/material pairs; benefits depend on platform and render path.",
+      "decision": "Keep repeated palm/prop sources reusable. Measure SRP batching versus instancing rather than enabling both indiscriminately.",
+      "status": "Prototype geometry exported; instanced Unity renderers pending"
+    },
+    {
+      "id": "U16",
+      "type": "Unity guide",
+      "title": "Enable GPU Resident Drawer in URP",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/analysis/graphics-performance-profiling/in-urp/reduce-draw-calls-urp/reduce-rendering-work-on-cpu/gpu-resident-drawer",
+      "finding": "GPU Resident Drawer uses BatchRendererGroup and has render-path and renderer compatibility requirements.",
+      "decision": "Evaluate only after an ordinary URP baseline runs. No performance claim from triangle count alone.",
+      "status": "Unity configuration pending Editor verification"
+    },
+    {
+      "id": "U17",
+      "type": "Unity guide",
+      "title": "Optimizing texture memory with mipmap streaming",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/materials-and-shaders/textures/texture-loading/texture-streaming",
+      "finding": "Mipmap streaming manages GPU texture residency under a configurable budget.",
+      "decision": "Use shared 1K color maps and 512 data maps for this pass; later test a 256 MB streaming budget.",
+      "status": "Asset texture sizing applied; Unity streaming configuration pending"
+    },
+    {
+      "id": "U18",
+      "type": "Unity guide",
+      "title": "Introduction to decals in URP",
+      "date": "Unity 6.6 / 6000.6",
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/visual-effects/decals/renderer-feature-decal/decal",
+      "finding": "URP decals project materials onto opaque geometry; atlases can reduce material cost.",
+      "decision": "Export markings and drain details as thin meshes now. Use a later atlas/projector pass for localized stains; transparent glass does not receive decals.",
+      "status": "Thin marking meshes applied; Decal Renderer Feature pending"
+    }
+  ]
+}

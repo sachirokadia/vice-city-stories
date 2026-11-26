@@ -1,0 +1,18 @@
+World V2 asset review — 26 November 2026
+
+Scope: three CPU renders of the actual exported GLB, plus offline geometry/material checks. These scores assess this asset study. They do not certify a Unity game or photorealistic final graphics.
+
+Palette discipline: 3/5 — warm plaster and brick, subdued frames and neutral concrete; intentionally sourced texture variation.
+Style uniformity: 3/5 — consistent contemporary coastal buildings; foliage and the preserved V1 car need further realism work.
+Lighting depth: 3/5 — real geometry shadows, window recesses and balcony shade; GI and local reflection-probe bakes remain pending.
+Silhouette: N/A — no new character in this asset pass. Four architectural masses are readable; all remain rectangular footprints.
+UI intentionality: 3/5 — styled review page and explicit inspection controls. Runtime HUD not assessed.
+Feedback visibility: N/A — no gameplay interaction or Unity player was tested in this asset pass.
+
+Fix pass: replaced needle-like palm leaflets with broader curved blades; changed balcony windows to full-height doors coordinated with slab levels; aligned ground-level entrances to the pavement; added parcel ground support; neutralized the warm concrete scan for paving; added mip filtering to the CPU preview to reduce distant texture noise.
+
+Verification: ten GLBs load, have finite attributes, nonblank texture images, expected dimensions and recorded triangle counts. Four LOD1 assets reduce building triangle counts by 51–57%. Research log has exactly 25 primary entries. See validation-world-v2.json for measured results.
+
+Engine gap: Unity CLI 1.1.0 re-open attempt reached Corrupted Library Detected. Native app-control mouse/keyboard actions failed on that dialog. Rebuild Library requires a user click before Editor integration can continue. Previous startup also reported shared-memory allocation failure. No engine build proof exists.
+
+Skills consulted: craft-game-floors/SKILL.md and references/art-direction.md, scene-lighting.md, visual-scorecard.md; unity-cli/SKILL.md and references/projects-templates.md, common-workflows.md, diagnostics-maintenance.md. Relevant Unity documentation is linked individually in research-world.html.

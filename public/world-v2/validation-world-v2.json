@@ -1,0 +1,215 @@
+{
+  "date": "2026-11-26",
+  "scope": "Offline assets only; not Unity runtime verification",
+  "passed": true,
+  "models": [
+    {
+      "id": "ocean-view-v2",
+      "bytes": 6959800,
+      "triangles": 60240,
+      "meshes": 169,
+      "textureObjects": 7,
+      "images": 7,
+      "dimensions": [
+        24.34,
+        21.334,
+        15.755
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "harbor-exchange-v2",
+      "bytes": 12066460,
+      "triangles": 141468,
+      "meshes": 251,
+      "textureObjects": 7,
+      "images": 7,
+      "dimensions": [
+        18.34,
+        33.824,
+        16.28
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "sunset-market-v2",
+      "bytes": 8013016,
+      "triangles": 25564,
+      "meshes": 91,
+      "textureObjects": 10,
+      "images": 10,
+      "dimensions": [
+        18.34,
+        11.984,
+        12.834
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "marina-house-v2",
+      "bytes": 9105204,
+      "triangles": 46332,
+      "meshes": 143,
+      "textureObjects": 10,
+      "images": 10,
+      "dimensions": [
+        20.34,
+        18.184,
+        15.741
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "coastal-infrastructure-v2",
+      "bytes": 11708052,
+      "triangles": 98488,
+      "meshes": 66,
+      "textureObjects": 9,
+      "images": 9,
+      "dimensions": [
+        160,
+        10.323,
+        150
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "ocean-drive-world-v2",
+      "bytes": 33633728,
+      "triangles": 417664,
+      "meshes": 752,
+      "textureObjects": 19,
+      "images": 19,
+      "dimensions": [
+        160,
+        35.694,
+        150
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "ocean-view-v2-lod1",
+      "bytes": 5146696,
+      "triangles": 27192,
+      "meshes": 98,
+      "textureObjects": 7,
+      "images": 7,
+      "dimensions": [
+        24.34,
+        21.16,
+        15.64
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "harbor-exchange-v2-lod1",
+      "bytes": 6916420,
+      "triangles": 68988,
+      "meshes": 114,
+      "textureObjects": 7,
+      "images": 7,
+      "dimensions": [
+        18.34,
+        33.595,
+        16.12
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "sunset-market-v2-lod1",
+      "bytes": 7243732,
+      "triangles": 10956,
+      "meshes": 50,
+      "textureObjects": 10,
+      "images": 10,
+      "dimensions": [
+        18.34,
+        11.81,
+        11.385
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "marina-house-v2-lod1",
+      "bytes": 7712424,
+      "triangles": 20340,
+      "meshes": 82,
+      "textureObjects": 10,
+      "images": 10,
+      "dimensions": [
+        20.34,
+        18.01,
+        15.64
+      ],
+      "failures": [],
+      "passed": true
+    }
+  ],
+  "lodReductions": [
+    {
+      "building": "ocean-view-v2",
+      "lod0": 60240,
+      "lod1": 27192,
+      "reductionPercent": 54.9,
+      "passed": true
+    },
+    {
+      "building": "harbor-exchange-v2",
+      "lod0": 141468,
+      "lod1": 68988,
+      "reductionPercent": 51.2,
+      "passed": true
+    },
+    {
+      "building": "sunset-market-v2",
+      "lod0": 25564,
+      "lod1": 10956,
+      "reductionPercent": 57.1,
+      "passed": true
+    },
+    {
+      "building": "marina-house-v2",
+      "lod0": 46332,
+      "lod1": 20340,
+      "reductionPercent": 56.1,
+      "passed": true
+    }
+  ],
+  "metricChecks": [
+    {
+      "name": "All exported mesh attributes finite",
+      "passed": true
+    },
+    {
+      "name": "Facade openings have positive clearance",
+      "passed": true
+    },
+    {
+      "name": "Glazing recessed approximately 18 cm",
+      "passed": true
+    },
+    {
+      "name": "Ground floors at least 4.2 m",
+      "passed": true
+    },
+    {
+      "name": "Residential and office storeys at least 3.15 m",
+      "passed": true
+    }
+  ],
+  "researchSources": 25,
+  "limitations": [
+    "Unity Editor startup has not completed; no Unity scene, light bake, LODGroup, player build or frame-rate claim.",
+    "The CPU preview approximates PBR, environment reflections and shadows; it does not reproduce URP or path tracing.",
+    "Fictional architecture; shallow rooms are visual depth, not fully playable apartment interiors."
+  ]
+}

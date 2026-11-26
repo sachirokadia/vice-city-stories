@@ -14,6 +14,17 @@ npm run build      # production build (tsc + vite)
 npm run preview    # serve the production build → http://localhost:4173
 ```
 
+## World V2 asset study (26 November 2026)
+
+A researched coastal block, ten textured GLB assets, three actual mesh previews,
+and notes on 25 primary sources are included in `public/world-v2`. With the dev
+server running, open `/world-v2/world-v2.html` for the preview and research or
+`/world-v2/index.html?model=ocean-drive-world-v2` for model inspection.
+See [asset scope and integration status](docs/world-v2-research-and-assets.md)
+and [generation tools](tools/world-v2/README.md). The kit is ready for inspection;
+the campaign does not load these new assets yet, and Unity runtime integration
+remains pending.
+
 ## What Phase 1 includes
 
 - **Full-screen 3D canvas** — `GameEngine` (`src/game/GameEngine.ts`)

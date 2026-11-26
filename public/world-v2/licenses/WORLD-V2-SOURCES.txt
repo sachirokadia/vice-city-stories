@@ -1,0 +1,12 @@
+WORLD V2 — ASSET SOURCES
+Architecture and infrastructure: original procedural geometry authored for this project.
+Shared PBR textures: Poly Haven, CC0, https://polyhaven.com/license
+https://polyhaven.com/a/concrete_wall_006
+https://polyhaven.com/a/brick_wall_005
+https://polyhaven.com/a/painted_plaster_wall
+https://polyhaven.com/a/pavement_02
+https://polyhaven.com/a/asphalt_02
+Downloaded from Poly Haven's API at 1K, November 2026. Color maps retained at 1K and normal/roughness data reduced to 512 in exports. Tile sizes: concrete and plaster 2m; brick 1.44m; paving 2.12m; asphalt 2m.
+The parked Velocity GT is the project's preserved V1 vehicle, authored in the earlier original procedural model pass.
+Research sources are linked in research-world.html. Papers and documentation are not redistributed; notes are original paraphrases.
+Three.js / loader / exporter: MIT; @napi-rs/canvas: MIT. Their existing package licenses apply.

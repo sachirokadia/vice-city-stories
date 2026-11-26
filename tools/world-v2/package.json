@@ -1,0 +1,16 @@
+{
+  "name": "vice-city-stories-world-tools",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "fetch-textures": "node fetch-textures.mjs",
+    "build": "node --expose-gc build-coastal-world-v2.mjs",
+    "render": "node --expose-gc render-coastal-world-v2.mjs",
+    "validate": "node --expose-gc validate-world-v2.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "1.2.1",
+    "three": "0.187.0"
+  }
+}

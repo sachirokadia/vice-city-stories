@@ -1,0 +1,8 @@
+World V2 — Ocean Drive, 26 November 2026
+Style: Grounded contemporary coastal architecture with original game identity, metric facade modules and restrained weathering.
+Palette: plaster #cdbd9f; stone #c49b7b; framing #35464e; glass #526a70; paving #a0a39b; shadow #213641; sign accent #a8533c.
+Mood: late afternoon sun at roughly 40 degrees, warm highlights and cool sky bounce; preserve readable shadow detail.
+Scale: 1 unit = 1 metre. Residential storeys 3.15 m, office storeys 3.4 m, retail 4.2 m, office lobby 5.2 m. Window glazing recessed approximately 0.18 m. Balcony guard 1.10 m.
+Materials: shared Poly Haven CC0 textures; correct sRGB color versus linear normal/roughness data. Texture repeat is calibrated to the source tile's physical size, not stretched per building.
+Scope: actual GLB assets and preview scene. Unity runtime still unverified. Read research-world.html for 25 sources, decisions and pending steps.
+Skills consulted: craft-game-floors/SKILL.md, references/art-direction.md, references/scene-lighting.md; unity-cli/SKILL.md and diagnostics-maintenance.md.
