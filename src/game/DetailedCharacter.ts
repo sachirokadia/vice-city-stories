@@ -7,6 +7,7 @@ import { disposeImportedModel } from './CoastalDistrict';
 interface SharedActor { users: number; abort: AbortController; ready: Promise<THREE.Group> }
 const actors = new Map<string, SharedActor>();
 const supported = new Set(['kai', 'june', 'lena']);
+const STANDING_HEIGHT = 1.85;
 
 function acquire(id: string): { ready: Promise<THREE.Group>; release: () => void } {
   let entry = actors.get(id);
@@ -15,7 +16,20 @@ function acquire(id: string): { ready: Promise<THREE.Group>; release: () => void
     const ready = (async () => {
       const response = await fetch(`${import.meta.env?.BASE_URL ?? '/'}world-v2/models/${id}-realism-v3.glb`, { signal: abort.signal });
       if (!response.ok) throw new Error(`Character download failed (${response.status})`);
-      return (await new GLTFLoader().parseAsync(await response.arrayBuffer(), '')).scene;
+      const { scene } = await new GLTFLoader().parseAsync(await response.arrayBuffer(), '');
+      // Box3's traversal alone does not refresh the inverse bind matrices.
+      // Measure the deformed vertices after updating the entire skeleton.
+      scene.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(scene, true);
+      const height = bounds.max.y - bounds.min.y;
+      if (!Number.isFinite(height) || height <= 0) {
+        disposeImportedModel(scene);
+        throw new Error('Invalid standing bounds in the character model');
+      }
+      const scale = STANDING_HEIGHT / height;
+      scene.scale.multiplyScalar(scale);
+      scene.position.y = (scene.position.y - bounds.min.y) * scale;
+      return scene;
     })();
     entry = { users: 0, abort, ready }; actors.set(id, entry);
   }
@@ -35,6 +49,7 @@ export function installDetailedCharacter(parent: THREE.Group, rig: CharacterRig,
   const originals: THREE.Mesh[] = [];
   parent.traverse(object => { if (object instanceof THREE.Mesh) originals.push(object); });
   let model: THREE.Object3D | undefined, disposed = false, enabled = true, originalsHidden = false;
+  let standingY = 0;
   const originalVisibility = new Map<THREE.Mesh, boolean>();
   const bindings: Array<{ bone: THREE.Bone; pose: THREE.Group; rest: THREE.Quaternion }> = [];
   const lease = supported.has(id) ? acquire(id) : undefined;
@@ -55,8 +70,7 @@ export function installDetailedCharacter(parent: THREE.Group, rig: CharacterRig,
       if (disposed) return;
       model = clone(source);
       model.name = `detailed-actor-${id}`;
-      const height = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3()).y;
-      model.scale.multiplyScalar(1.85 / height);
+      standingY = model.position.y;
       const slots: Array<[string, THREE.Group]> = [
         ['spine01', rig.torso], ['head', rig.head],
         ['upperleg01.L', rig.legL], ['upperleg01.R', rig.legR],
@@ -79,7 +93,7 @@ export function installDetailedCharacter(parent: THREE.Group, rig: CharacterRig,
   return { ready, setEnabled: (value: boolean) => { enabled = value; syncVisibility(); },
     update: () => {
       if (!model || !enabled) return;
-      model.position.y = rig.body.position.y;
+      model.position.y = standingY + rig.body.position.y;
       bindings.forEach(({ bone, pose, rest }) => bone.quaternion.copy(rest).multiply(pose.quaternion));
     }, dispose: () => {
       if (disposed) return; disposed = true;

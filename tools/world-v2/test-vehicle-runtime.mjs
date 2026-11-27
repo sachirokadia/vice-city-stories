@@ -96,19 +96,35 @@ assert.deepEqual(warnings,[],'No detailed asset load may fall back during this t
 // The playable-entry work shares model lifecycle with this fleet; verify its character rigs too.
 {
  const {createPlayer}=await load('Player'),{createStagedActor}=await load('CinematicStaging'),{OUTFIT_DEFS}=await load('Outfits');
- const scene=new T.Scene(),player=createPlayer(scene,new T.Vector3(),[]);await player.visualReady;
+ const checkStandingBounds = (actor, id, targetHeight) => {
+  // Match the renderer: update the bones and inverse bind matrices before sampling deformed vertices.
+  scene.updateMatrixWorld(true);
+  const bounds = new T.Box3().setFromObject(actor, true);
+  const height = bounds.max.y - bounds.min.y;
+  assert(Math.abs(height - targetHeight) < .01, `${id} height must be ${targetHeight} m, got ${height} m`);
+  assert(Math.abs(bounds.min.y) < .01, `${id} must stand on the ground, got ${bounds.min.y} m`);
+ };
+ const scene=new T.Scene(),player=createPlayer(scene,new T.Vector3(68,0,31),[]);await player.visualReady;
  const model=player.mesh.getObjectByName('detailed-actor-kai');assert(model,'The playable Kai model must load');
+ checkStandingBounds(model, 'Playable Kai', 1.85);
  const leg=model.getObjectByName(T.PropertyBinding.sanitizeNodeName('upperleg01.L')),initial=leg.quaternion.clone(),input=createInputState();input.moveY=1;
- for(let i=0;i<25;i++)player.update(1/30,0,input);assert(player.position.z<-1);assert(leg.quaternion.angleTo(initial)>.01,'Delivered skeleton must follow the gait');
+ for(let i=0;i<25;i++)player.update(1/30,0,input);assert(player.position.z<30);assert(leg.quaternion.angleTo(initial)>.01,'Delivered skeleton must follow the gait');
+ scene.updateMatrixWorld(true);
+ const walkingBounds = new T.Box3().setFromObject(model, true);
+ assert(walkingBounds.max.y < 2 && walkingBounds.min.y > -.2, 'The walking model must stay human-sized and near the street');
  player.setSurrendered(true);player.update(.5,0,input);player.setSurrendered(false);
  player.applyOutfit(OUTFIT_DEFS[1]);assert.equal(model.visible,false);player.applyOutfit(OUTFIT_DEFS[0]);assert.equal(model.visible,true);
  const staged=createStagedActor(scene,'kai',[1,0],0);await staged.visualReady;
  assert.notEqual(staged.group.getObjectByName(T.PropertyBinding.sanitizeNodeName('upperleg01.L')),leg,'Concurrent actors need independent bones');
+ checkStandingBounds(staged.group.getObjectByName('detailed-actor-kai'), 'Staged Kai', 1.85);
  staged.dispose();player.update(1/30,0,input);player.dispose();assert.equal(scene.children.length,0);
- for(const id of['june','lena']){
-  const actor=createStagedActor(scene,id,[0,0],0);await actor.visualReady;assert(actor.group.getObjectByName('detailed-actor-'+id));actor.update(1/30);actor.dispose();assert.equal(scene.children.length,0);globalThis.gc?.();
+ for(const [id, scale] of [['june', .96], ['lena', .97]]){
+  const actor=createStagedActor(scene,id,[12,17],.7);await actor.visualReady;
+  const detailed=actor.group.getObjectByName('detailed-actor-'+id);assert(detailed);
+  checkStandingBounds(detailed, id, 1.85 * scale);
+  actor.update(1/30);actor.dispose();assert.equal(scene.children.length,0);globalThis.gc?.();
  }
- results.push({check:'playable-and-story-character-rigs',kaiGait:true,outfitFallback:true,independentSkeletons:true,june:true,lena:true,cleanup:true});
+ results.push({check:'playable-and-story-character-rigs',kaiGait:true,outfitFallback:true,independentSkeletons:true,june:true,lena:true,humanScaleAndGrounding:true,cleanup:true});
 }
 assert.deepEqual(warnings,[],'No character import may fall back during this test');
 console.warn=originalWarn;globalThis.fetch=originalFetch;

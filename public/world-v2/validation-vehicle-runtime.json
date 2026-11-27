@@ -74,6 +74,7 @@
       "independentSkeletons": true,
       "june": true,
       "lena": true,
+      "humanScaleAndGrounding": true,
       "cleanup": true
     }
   ]
